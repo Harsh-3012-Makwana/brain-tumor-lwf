@@ -1,0 +1,74 @@
+# Decisions and Risks Log (`docs/DECISIONS.md`)
+
+This log records all architectural, algorithmic, and engineering decisions frozen for this project, along with their concise one-line justifications and identified risk mitigations.
+
+---
+
+## 1. Frozen Architectural and Engineering Decisions
+
+| Category | Decision | One-Line Justification |
+|:---|:---|:---|
+| **Framework** | Standard native PyTorch (without PyTorch Lightning) | Pure PyTorch provides explicit, transparent control over multi-head dynamic expansion, teacher model snapshotting, and low-level distillation loss calculations required by LwF without framework abstraction overhead. |
+| **Dataset Source** | Masoud Nickparvar Brain Tumor MRI Dataset (7,023 images) | Recognized standardized benchmark combining 4 primary classes (`glioma`, `meningioma`, `pituitary`, `notumor`) with balanced distribution and established official partitions. |
+| **Split Strategy** | Official test set (1,311 images) untouched; stratified 15% validation split (~857 images) carved from official train set (5,712 images) | Prevents test set contamination and data snooping while ensuring unbiased validation across all 4 classes. |
+| **Model Topology** | 4-block custom CNN: [32, 64, 128, 128] channels, BatchNorm, ReLU, MaxPool, Global Average Pooling, and Expandable Classifier Head | Minimizes parameter bloat and enforces spatial invariance while strictly respecting the <5M parameter budget. |
+| **Parameter Budget** | Hard cap strictly below 5,000,000 parameters | Ensures deployability on edge clinical devices and embedded systems while establishing a compact footprint for lightweight continual learning. |
+| **Continual Paradigm** | Class-Incremental Learning (CIL) with shared backbone and single expandable output head | Reflects real-world clinical deployment where task IDs are unavailable at test inference time, requiring a unified prediction across all classes seen to date. |
+| **Primary Method** | Learning without Forgetting (LwF) via modified distillation loss | Enables continual adaptation to novel tumor classes without storing historical patient MRI slices, respecting medical data privacy regulations (e.g., HIPAA/GDPR). |
+| **Comparative Baselines**| Naive Fine-Tuning (lower bound), Experience Replay ($M=200$ buffer), Joint Training (upper bound oracle), ResNet18, VGG16 | Contextualizes LwF performance against lower bounds, memory-based replay, overparameterized backbones, and ideal non-continual upper bounds. |
+| **Task Presentation Orders** | Order A: `{glioma, meningioma} -> {pituitary} -> {notumor}`; Order B: `{notumor, pituitary} -> {glioma} -> {meningioma}` | Probes continual learning robustness against reverse pathology presentation and exposes representation retention asymmetries. |
+| **Reproducibility** | Fixed 3-seed evaluation (`42`, `123`, `2024`) with deterministic flags enabled | Guarantees statistical significance reporting ($mean \pm std$) and ensures 100% bit-exact reproducibility across experimental runs. |
+| **Hyperparameter Optimization** | Optuna with Median Pruning over validation Macro-F1 | Provides objective, Bayesian-guided search for optimal distillation temperature $T$ and loss weight $\lambda$. |
+| **Deployment Format** | ONNX export with runtime validation and local Gradio GUI | Delivers platform-agnostic portable inference and an intuitive interactive visual demonstration for clinicians. |
+
+---
+
+## 2. Standard Run Folder and Artifact Convention
+
+Every experimental execution writes to an isolated folder under `results/runs/` adhering to the mandatory naming convention:
+
+```
+results/runs/<method>_<order>_<seed>_<timestamp>/
+```
+
+### Folder Contents
+1. `config_snapshot.yaml`: Complete, frozen YAML configuration used for the run.
+2. `train_log.csv`: Epoch-by-epoch loss (task loss, distillation loss, total loss) and validation metrics.
+3. `events.out.tfevents.*`: Native TensorBoard event log for live scalar and distribution tracking.
+4. `metrics.json`: Per-task test evaluations ($R_{i,j}$ matrix), final macro metrics, and continual learning metrics ($A_{\text{avg}}, F, \text{BWT}$).
+5. `checkpoints/`: Model weights:
+   - `best.pt`: Best validation checkpoint.
+   - `last.pt`: Final epoch checkpoint.
+   - `task_1.pt`, `task_2.pt`, `task_3.pt`: Frozen snapshots captured at the conclusion of each incremental task.
+6. `predictions/`: Serialized test logits, softmax probabilities, and ground truth arrays for post-hoc confusion matrix and ROC generation.
+7. `env_info.txt`: Package versions, OS, CPU, CUDA device, and Git commit hash at invocation time.
+
+---
+
+## 3. Known Project Risks & Mitigation Protocols
+
+### Risk 1: Inherent Weakness of Pure LwF in Class-Incremental Setups
+- **Description**: Standard LwF was originally introduced for multi-task / domain-incremental learning with task-specific heads. In class-incremental learning with a unified output head, the lack of old-class exemplars often induces an "inter-task class bias", where the model skews predictions heavily toward recently observed classes.
+- **Mitigation Strategy**:
+  1. We evaluate temperature scaling $T \in [1.0, 6.0]$ to soften teacher distributions.
+  2. We implement an experimental hybrid extension: `LwF + Replay` (storing a tiny exemplar budget of $M=200$ images) to directly quantify the incremental benefit of replay over pure distillation.
+  3. We apply classifier head weight normalization (cosine normalization or weight alignment) if severe logit bias is observed.
+
+### Risk 2: Near-Duplicate Data Leakage Across Merged Subsets
+- **Description**: The Nickparvar dataset is compiled from three external sources (Figshare, SARTAJ, and Br35H). In medical MRI datasets, volumetric slice series from the same patient can be split across train and test partitions, resulting in near-duplicate leakage and artificially inflated test scores.
+- **Mitigation Strategy**:
+  1. In Phase 1 Data Audit, run perceptual hashing (`pHash`) and pairwise structural similarity (`SSIM`) scans across the official train and test sets.
+  2. Flag and record any image pairs with hamming distance $\le 5$ or $\text{SSIM} \ge 0.95$.
+  3. Maintain an audit report in `data/interim/leakage_audit.json` to quarantine or document duplicate cases.
+
+### Risk 3: Model Parameter Budget Constraint (<5,000,000 parameters)
+- **Description**: Adding dense fully connected layers or excessive convolutional feature maps can inadvertently breach the strict 5M parameter cap.
+- **Mitigation Strategy**:
+  1. Employ Global Average Pooling (GAP) after Conv Block 4, reducing feature maps to a 128-dimensional vector before classification.
+  2. Incorporate automated unit tests (`tests/test_models.py`) that strictly assert `sum(p.numel() for p in model.parameters()) < 5_000_000` on every build.
+
+### Risk 4: Class Imbalance Distortions
+- **Description**: The dataset contains uneven representation (`notumor` has ~2,000 images, whereas `glioma` has ~1,621). Incremental introduction of `notumor` with larger sample counts may overwhelm previous tumor classes.
+- **Mitigation Strategy**:
+  1. Implement class-weighted cross-entropy loss or balanced batch sampling during task training.
+  2. Evaluate models using Macro-F1 and balanced accuracy alongside raw top-1 accuracy.

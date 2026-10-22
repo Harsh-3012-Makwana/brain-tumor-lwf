@@ -1,0 +1,75 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE and Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+.pytest_cache/
+
+# Project Data Directories (keep folder skeleton via .gitkeep)
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Project Results & Artifacts (keep folder skeleton via .gitkeep)
+results/checkpoints/*
+!results/checkpoints/.gitkeep
+results/logs/*
+!results/logs/.gitkeep
+results/runs/*/checkpoints/
+results/runs/*/*.pt
+results/runs/*/*.pth
+results/runs/*/*.onnx
+
+# TensorBoard logs & run event files
+events.out.tfevents.*
+
+# PyTorch models / checkpoints
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# Allow keeping tracking files
+!.gitkeep

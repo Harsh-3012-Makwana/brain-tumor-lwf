@@ -1,0 +1,9 @@
+# Baseline: ResNet18 Architecture Configuration
+name: "resnet18"
+type: "torchvision"
+pretrained: true
+weights: "IMAGENET1K_V1"
+freeze_backbone: false
+head:
+  type: "expandable_linear"
+  initial_num_classes: 2

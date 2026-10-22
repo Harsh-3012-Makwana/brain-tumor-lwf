@@ -1,0 +1,12 @@
+# Joint Training Configuration (Upper Bound Oracle)
+strategy: "joint"
+description: "Non-continual full dataset training where all 4 classes are available simultaneously (ideal upper bound)"
+
+training:
+  num_epochs: 40
+  batch_size: 32
+  lr: 0.0003
+  weight_decay: 0.0001
+  scheduler:
+    name: "cosine"
+    t_max: 40

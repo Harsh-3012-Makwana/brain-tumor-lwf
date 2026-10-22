@@ -1,0 +1,18 @@
+# Learning without Forgetting (LwF) Configuration
+strategy: "lwf"
+description: "Knowledge distillation from frozen old-task teacher to preserve old-class representations"
+
+distillation:
+  # Temperature T: scales logits before softmax to soften probability distributions
+  temperature: 2.0
+  # Lambda: trade-off weight balancing new class CE loss and old class distillation loss
+  lambda_distill: 1.0
+  # Loss formulation: modified cross entropy or KL divergence on softened old-task probabilities
+  loss_type: "distillation_cross_entropy"
+
+training:
+  epochs_per_task: 25
+  batch_size: 32
+  lr: 0.0002
+  weight_decay: 0.0001
+  freeze_backbone_warmup_epochs: 2 # Warm up new classifier head before full backbone tuning

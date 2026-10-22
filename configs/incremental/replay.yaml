@@ -1,0 +1,14 @@
+# Experience Replay Configuration (Memory-Based Baseline)
+strategy: "replay"
+description: "Maintains a fixed exemplar memory buffer of past-task images to interleave with new task batches"
+
+buffer:
+  total_capacity: 200 # Exemplars stored across all past classes (e.g., 100/class after T1, 66/class after T2)
+  sampling_strategy: "random" # "random" or "herding" (nearest mean exemplar selection)
+  replay_batch_ratio: 0.25 # Fraction of each training batch composed of replay exemplars
+
+training:
+  epochs_per_task: 25
+  batch_size: 32
+  lr: 0.0002
+  weight_decay: 0.0001

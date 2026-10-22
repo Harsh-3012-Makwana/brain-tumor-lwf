@@ -1,0 +1,124 @@
+# ==============================================================================
+# Global Configuration: Multi-Class Brain Tumor MRI Classification with LwF
+# ==============================================================================
+
+project:
+  name: "brain-tumor-lwf"
+  description: "Class-Incremental Learning with Learning without Forgetting (LwF) for Brain Tumor MRI"
+  version: "0.1.0"
+  device: "cuda" # "cuda" if torch.cuda.is_available() else "cpu"
+  num_workers: 4
+  pin_memory: true
+
+# Experiment reproducibility seeds
+seeds:
+  - 42
+  - 123
+  - 2024
+
+# Filesystem paths
+paths:
+  raw_data_dir: "data/raw"
+  interim_data_dir: "data/interim"
+  processed_data_dir: "data/processed"
+  splits_dir: "data/splits"
+  results_dir: "results"
+  runs_dir: "results/runs"
+  checkpoints_dir: "results/checkpoints"
+  logs_dir: "results/logs"
+  tables_dir: "results/tables"
+  figures_dir: "results/figures"
+  ablations_dir: "results/ablations"
+  exports_dir: "results/exports"
+
+# Dataset and preprocessing settings
+data:
+  dataset_name: "Masoud Nickparvar Brain Tumor MRI Dataset"
+  num_total_classes: 4
+  class_names:
+    - "glioma"
+    - "meningioma"
+    - "pituitary"
+    - "notumor"
+  image_size: [224, 224]
+  channels: 3
+  split_ratios:
+    val_from_train_ratio: 0.15 # Stratified 15% carve-out from official 5,712 train set (~857 val, ~4,855 train)
+  preprocessing:
+    apply_contour_crop: true
+    blur_kernel_size: 5
+    threshold_otsu: true
+    normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+
+# Default training hyperparameters
+training:
+  batch_size: 32
+  num_epochs: 30
+  optimizer:
+    name: "adamw"
+    lr: 0.0003
+    weight_decay: 0.0001
+    betas: [0.9, 0.999]
+  scheduler:
+    name: "cosine"
+    t_max: 30
+    min_lr: 0.000001
+  early_stopping:
+    patience: 7
+    monitor: "val_loss"
+    mode: "min"
+
+# Incremental learning defaults
+incremental:
+  strategy: "lwf" # options: "finetune", "lwf", "replay", "joint", "lwf_replay"
+  active_order: "order_a"
+  task_orders:
+    order_a:
+      task_1: ["glioma", "meningioma"]
+      task_2: ["pituitary"]
+      task_3: ["notumor"]
+    order_b:
+      task_1: ["notumor", "pituitary"]
+      task_2: ["glioma"]
+      task_3: ["meningioma"]
+
+  # LwF hyperparameters
+  lwf:
+    temperature: 2.0
+    lambda_distill: 1.0
+
+  # Experience Replay hyperparameters
+  replay:
+    buffer_size: 200 # Total exemplars stored across all past classes
+    sampling_strategy: "random" # "random" or "herding"
+
+# Custom lightweight CNN architecture settings
+model:
+  name: "custom_cnn"
+  hard_param_limit: 5000000 # Under 5M parameters
+  conv_channels: [32, 64, 128, 128]
+  kernel_size: 3
+  dropout_rate: 0.3
+  use_batchnorm: true
+  pooling: "max"
+  head_pooling: "global_avg"
+
+# Evaluation and tracking
+evaluation:
+  metrics:
+    - "accuracy"
+    - "macro_f1"
+    - "macro_precision"
+    - "macro_recall"
+    - "confusion_matrix"
+  continual_metrics:
+    - "average_incremental_accuracy"
+    - "forgetting"
+    - "backward_transfer"
+  efficiency_metrics:
+    - "params"
+    - "flops"
+    - "model_size_mb"
+    - "latency_ms"

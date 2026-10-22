@@ -1,0 +1,35 @@
+# Preprocessing and augmentation configuration
+raw_dir: "data/raw"
+processed_dir: "data/processed"
+splits_dir: "data/splits"
+
+image_size: [224, 224]
+channels: 3
+
+preprocessing:
+  contour_crop:
+    enabled: true
+    gaussian_blur_ksize: 5
+    threshold_method: "otsu"
+    contour_margin: 0
+  intensity_norm:
+    method: "imagenet" # or "min_max", "z_score"
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+
+augmentation:
+  train:
+    horizontal_flip_prob: 0.5
+    rotation_limit_deg: 15
+    shift_scale_rotate_prob: 0.5
+    random_brightness_contrast_prob: 0.3
+    gaussian_blur_prob: 0.2
+  val:
+    resize_only: true
+  test:
+    resize_only: true
+
+split:
+  val_ratio: 0.15
+  stratified: true
+  random_states: [42, 123, 2024]
