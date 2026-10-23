@@ -32,4 +32,4 @@ augmentation:
 split:
   val_ratio: 0.15
   stratified: true
-  random_states: [42, 123, 2024]
+  random_states: [42, 123] # 2 seeds evaluated; seed 2024 is unused

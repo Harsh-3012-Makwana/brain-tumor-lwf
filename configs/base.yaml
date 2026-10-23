@@ -10,11 +10,10 @@ project:
   num_workers: 4
   pin_memory: true
 
-# Experiment reproducibility seeds
+# Experiment reproducibility seeds (2 seeds)
 seeds:
   - 42
   - 123
-  - 2024
 
 # Filesystem paths
 paths:
@@ -72,7 +71,7 @@ training:
 
 # Incremental learning defaults
 incremental:
-  strategy: "lwf" # options: "finetune", "lwf", "replay", "joint", "lwf_replay"
+  strategy: "lwf" # options: "finetune", "lwf", "replay", "joint"
   active_order: "order_a"
   task_orders:
     order_a:
@@ -90,9 +89,11 @@ incremental:
     lambda_distill: 1.0
 
   # Experience Replay hyperparameters
+  # Buffer Rule: Total capacity across all past classes, class-balanced random selection,
+  # filled incrementally from the data of each completed task.
   replay:
-    buffer_size: 200 # Total exemplars stored across all past classes
-    sampling_strategy: "random" # "random" or "herding"
+    buffer_sizes: [60, 120] # Evaluated at 60 and 120 total images
+    sampling_strategy: "class_balanced_random"
 
 # Custom lightweight CNN architecture settings
 model:
@@ -122,3 +123,4 @@ evaluation:
     - "flops"
     - "model_size_mb"
     - "latency_ms"
+    - "replay_memory_cost_images" # Stored image count (0 for FT/LwF/Joint, 60 or 120 for Replay)

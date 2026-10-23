@@ -1,7 +1,9 @@
-# Custom Lightweight CNN Architecture Configuration (<5M parameters)
+# Custom Lightweight CNN Architecture Configuration (<5M parameters, target 1M-3M)
 name: "custom_cnn"
 type: "custom"
+role: "main_model"
 max_parameter_budget: 5000000
+target_parameter_range: [1000000, 3000000]
 
 backbone:
   in_channels: 3

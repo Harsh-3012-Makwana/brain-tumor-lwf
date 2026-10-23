@@ -15,7 +15,7 @@ def test_load_base_config():
     assert isinstance(cfg, dict)
     assert "project" in cfg
     assert "seeds" in cfg
-    assert cfg["seeds"] == [42, 123, 2024]
+    assert cfg["seeds"] == [42, 123]
     assert cfg["data"]["image_size"] == [224, 224]
 
 

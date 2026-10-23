@@ -15,7 +15,7 @@ project:
   num_workers: int        # DataLoader multiprocessing workers (default: 4)
   pin_memory: bool        # Fast GPU memory pinning (default: true)
 
-seeds: list[int]          # List of seeds for statistical replication: [42, 123, 2024]
+seeds: list[int]          # Active seeds for statistical replication: [42, 123] (seed 2024 is marked unused if split files exist)
 
 paths:
   raw_data_dir: str       # "data/raw"
@@ -65,19 +65,24 @@ training:
     mode: str             # Optimization direction ("min")
 
 incremental:
-  strategy: str           # "finetune", "lwf", "replay", "joint", or "lwf_replay"
+  strategy: str           # "finetune", "lwf", "replay", or "joint"
   active_order: str       # "order_a" or "order_b"
   task_orders: dict       # Mapping of sequential tasks to class subsets
   lwf:
     temperature: float    # Softmax temperature scaling T (2.0)
     lambda_distill: float # Distillation loss scaling factor lambda (1.0)
   replay:
-    buffer_size: int      # Exemplar memory capacity M (200)
-    sampling_strategy: str# "random" or "herding"
+    buffer_sizes: list[int]# Buffer variants: [60, 120] total images
+    total_capacity: int   # Active buffer size: 60 or 120
+    # Buffer Rule: Total capacity across all old classes, class-balanced random selection,
+    # filled incrementally from the data of each finished task.
+    # Memory Cost Metric: Reported as number of stored images (60 or 120) next to accuracy & forgetting.
+    sampling_strategy: str# "class_balanced_random"
 
 model:
-  name: str               # "custom_cnn", "resnet18", or "vgg16"
-  hard_param_limit: int   # Strict upper bound (5000000)
+  name: str               # "custom_cnn" (main model) or "resnet18" (reference model)
+  role: str               # "main_model" or "reference_model"
+  hard_param_limit: int   # Strict upper bound (5000000; target roughly 1M to 3M)
   conv_channels: list[int]# Block channel sequence [32, 64, 128, 128]
   kernel_size: int        # Convolution kernel size (3)
   dropout_rate: float     # Dropout regularization rate (0.3)

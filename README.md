@@ -12,7 +12,14 @@
 
 In clinical neuro-oncology, magnetic resonance imaging (MRI) diagnostic models encounter continuous domain and class shifts as newly characterized tumor sub-types or institutional imaging protocols emerge. Storing historical patient scans to periodically retrain models from scratch is heavily restricted by data privacy regulations (e.g., HIPAA, GDPR) and local storage constraints. 
 
-This research investigates whether a compact, custom convolutional neural network (<5M parameters) trained under **Class-Incremental Learning (CIL)** via **Learning without Forgetting (LwF)** can preserve diagnostic representations on previously learned tumor classes without retaining past patient images. Using the 7,023-image Masoud Nickparvar Brain Tumor MRI dataset across 4 classes (`glioma`, `meningioma`, `pituitary`, `notumor`), we compare LwF against Naive Fine-Tuning (lower bound), Experience Replay (memory buffer), and non-continual Joint Training (upper bound oracle) across multiple task presentation sequences and deterministic seeds.
+**Core Research Question**:  
+> *Can a lightweight custom CNN (<5M params) retain old tumor classes under class-incremental learning with LwF, compared with a pretrained ResNet18, and how does it compare with naive fine-tuning, tiny-buffer experience replay (60 and 120 images), and joint training?*
+
+Using the 7,023-image Masoud Nickparvar Brain Tumor MRI dataset across 4 classes (`glioma`, `meningioma`, `pituitary`, `notumor`), we evaluate two model families:
+1. **Custom CNN (Main Model)**: Built from scratch, strictly $<5\text{M}$ parameters (target range roughly 1M to 3M; 4 conv blocks with BatchNorm, ReLU, MaxPool; followed by Global Average Pooling and an expandable classification head).
+2. **ResNet18 (Reference Model)**: Pretrained on ImageNet-1k with an expandable classification head.
+
+We benchmark 4 incremental learning methods plus Joint Training across two task presentation sequences (Order A and Order B) and two deterministic seeds (`42`, `123`), producing a focused 36-run experimental matrix.
 
 ---
 
@@ -28,7 +35,7 @@ brain-tumor-lwf/
 │   └── splits/                       # Stratified train/val/test and incremental task manifests
 ├── src/
 │   ├── data/                         # Audit, contour preprocessing, augmentations, datasets, splitting, tasks
-│   ├── models/                       # Custom lightweight CNN (<5M params), baselines, expandable heads, utils
+│   ├── models/                       # Custom lightweight CNN (<5M params), ResNet18 reference, expandable heads
 │   ├── training/                     # Standard trainers, CE/distillation losses, optimizers, callbacks, tuning
 │   ├── incremental/                  # Continual learning strategies (LwF, fine-tuning, replay, joint, teachers)
 │   ├── evaluation/                   # Metrics (Accuracy, F1, AIA, Forgetting, BWT), FLOPs/latency, Grad-CAM
@@ -131,23 +138,30 @@ Models are evaluated across two distinct 3-task class-incremental presentation s
 
 ---
 
-## Comparative Results (Mean ± Std over 3 Seeds)
+## Comparative Results (Mean ± Std over 2 Seeds: [42, 123])
 
 *Results table placeholder — to be populated upon experimental execution in Phase 6.*
 
-| Method | Order | Buffer ($M$) | Avg Incr Acc ($A_{\text{avg}}$) % | Final Accuracy % | Forgetting ($F$) % | Backward Transfer ($\text{BWT}$) % | Params | Latency (ms) |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Naive Fine-Tuning** | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Naive Fine-Tuning** | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Learning without Forgetting (LwF)** | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Learning without Forgetting (LwF)** | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Experience Replay** | A | 200 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Experience Replay** | B | 200 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **LwF + Experience Replay** | A | 200 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **LwF + Experience Replay** | B | 200 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Joint Training (Upper Bound)** | - | Full | *N/A* | *TBD* | *N/A* | *N/A* | <5M | *TBD* |
-| **ResNet18 (Joint Baseline)** | - | Full | *N/A* | *TBD* | *N/A* | *N/A* | ~11.7M | *TBD* |
-| **VGG16 (Joint Baseline)** | - | Full | *N/A* | *TBD* | *N/A* | *N/A* | ~138M | *TBD* |
+| Model | Method | Order | Buffer ($M$ Images) | Avg Incr Acc ($A_{\text{avg}}$) % | Final Accuracy % | Forgetting ($F$) % | Backward Transfer ($\text{BWT}$) % | Params | Latency (ms) |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Custom CNN** | Naive Fine-Tuning | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
+| **Custom CNN** | Naive Fine-Tuning | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
+| **Custom CNN** | Learning without Forgetting (LwF) | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
+| **Custom CNN** | Learning without Forgetting (LwF) | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
+| **Custom CNN** | Experience Replay (60) | A | 60 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
+| **Custom CNN** | Experience Replay (60) | B | 60 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
+| **Custom CNN** | Experience Replay (120) | A | 120 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
+| **Custom CNN** | Experience Replay (120) | B | 120 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
+| **Custom CNN** | Joint Training (Upper Bound) | - | Full | *N/A* | *TBD* | *N/A* | *N/A* | <5M | *TBD* |
+| **ResNet18** | Naive Fine-Tuning | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
+| **ResNet18** | Naive Fine-Tuning | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
+| **ResNet18** | Learning without Forgetting (LwF) | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
+| **ResNet18** | Learning without Forgetting (LwF) | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
+| **ResNet18** | Experience Replay (60) | A | 60 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
+| **ResNet18** | Experience Replay (60) | B | 60 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
+| **ResNet18** | Experience Replay (120) | A | 120 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
+| **ResNet18** | Experience Replay (120) | B | 120 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
+| **ResNet18** | Joint Training (Upper Bound) | - | Full | *N/A* | *TBD* | *N/A* | *N/A* | ~11.7M | *TBD* |
 
 ---
 

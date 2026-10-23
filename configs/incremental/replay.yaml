@@ -3,9 +3,25 @@ strategy: "replay"
 description: "Maintains a fixed exemplar memory buffer of past-task images to interleave with new task batches"
 
 buffer:
-  total_capacity: 200 # Exemplars stored across all past classes (e.g., 100/class after T1, 66/class after T2)
-  sampling_strategy: "random" # "random" or "herding" (nearest mean exemplar selection)
+  # Evaluated buffer variants: 60 images and 120 images total
+  buffer_sizes: [60, 120]
+  # Default active capacity for a single run instance (set via experiment runner: 60 or 120)
+  total_capacity: 60
+  # Buffer Rule: Total size across all old classes, class-balanced random selection,
+  # filled from the data of each completed task.
+  # For buffer size 60:
+  #   - After Task 1 (2 classes): 30 images / class (60 total)
+  #   - After Task 2 (3 classes): 20 images / class (60 total)
+  # For buffer size 120:
+  #   - After Task 1 (2 classes): 60 images / class (120 total)
+  #   - After Task 2 (3 classes): 40 images / class (120 total)
+  sampling_strategy: "class_balanced_random"
   replay_batch_ratio: 0.25 # Fraction of each training batch composed of replay exemplars
+
+metrics:
+  # Replay memory cost tracking: explicitly reported alongside accuracy and forgetting
+  report_memory_cost: true
+  memory_unit: "stored_images" # Stored image count (60 or 120)
 
 training:
   epochs_per_task: 25

@@ -13,28 +13,28 @@ This directory contains the production-grade modular Python package for all data
   - `tasks/`: Class-incremental task builder assigning classes to sequential steps ($T_1, T_2, T_3$).
 
 - `models/`:
-  - `custom_cnn/`: 4-block custom lightweight CNN (<5M parameters) with Conv2D, BatchNorm, ReLU, MaxPool, and Global Average Pooling.
-  - `baselines/`: Pretrained comparative baselines (ResNet18, VGG16 with ImageNet weights).
+  - `custom_cnn/`: 4-block custom lightweight CNN (<5M parameters, target 1M-3M; main model) with Conv2D, BatchNorm, ReLU, MaxPool, and Global Average Pooling.
+  - `baselines/`: Pretrained reference model (ResNet18 with ImageNet weights and expandable head).
   - `heads/`: Expandable classifier heads supporting dynamic output expansion across incremental tasks.
   - `utils/`: Parameter counting, FLOPs calculation, and architectural profiling utilities.
 
 - `training/`:
   - `trainers/`: Base and task-specific training loops.
   - `losses/`: Standard cross-entropy and modified distillation loss for LwF.
-  - `optimizers/`: Factories for Adam, SGD, and learning rate schedulers.
+  - `optimizers/`: Factories for AdamW, SGD, and learning rate schedulers.
   - `callbacks/`: Checkpointing, early stopping, and metric logging hooks.
-  - `tuning/`: Optuna objective runners for hyperparameter exploration.
+  - `tuning/`: Optional Optuna objective runners for hyperparameter exploration.
 
 - `incremental/`:
-  - `strategies/`: Continual learning methods: Naive Fine-Tuning, Learning without Forgetting (LwF), Experience Replay, Joint Training upper bound, and LwF + Replay extension.
-  - `buffers/`: Exemplar replay memory managers (random, reservoir, or herding sampling).
+  - `strategies/`: Continual learning methods evaluated across both models: Naive Fine-Tuning (lower bound), Learning without Forgetting (LwF; main method), Experience Replay (fixed buffers of 60 and 120 images with class-balanced random selection), and Joint Training (upper bound oracle).
+  - `buffers/`: Exemplar replay memory managers (total size 60 or 120 images, class-balanced random selection filled from each finished task).
   - `teachers/`: Snapshotting and inference through frozen previous-task teacher models.
   - `runner/`: Orchestrator executing the complete sequence of incremental tasks.
 
 - `evaluation/`:
   - `metrics/`: Standard classification metrics: Accuracy, Precision, Recall, Macro F1, ROC-AUC.
   - `incremental_metrics/`: Continual learning metrics: Average Incremental Accuracy ($A_{\text{avg}}$), Forgetting ($F$), and Backward Transfer ($\text{BWT}$).
-  - `efficiency/`: Model profiling (parameter count, FLOPs, model size in MB, CPU/GPU latency).
+  - `efficiency/`: Model profiling (parameter count, FLOPs, model size in MB, CPU/GPU latency, and replay buffer memory cost in stored images).
   - `explainability/`: Grad-CAM heatmaps comparing attention drift across incremental learning steps.
   - `plots/`: Automated plotting for confusion matrices, task accuracy curves, and ablation charts.
   - `reports/`: Aggregation and statistical reporting (mean $\pm$ std across seeds).

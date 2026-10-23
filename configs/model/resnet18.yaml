@@ -1,6 +1,7 @@
-# Baseline: ResNet18 Architecture Configuration
+# Reference Model: ResNet18 Architecture Configuration
 name: "resnet18"
 type: "torchvision"
+role: "reference_model"
 pretrained: true
 weights: "IMAGENET1K_V1"
 freeze_backbone: false

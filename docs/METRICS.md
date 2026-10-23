@@ -86,3 +86,10 @@ $$\bar{t} = \frac{1}{K} \sum_{k=1}^{K} t_k \quad (\text{ms/slice})$$
 Reported as $\text{mean} \pm \text{std}$ on:
 1. **CPU**: Intel Core i7-14650HX (batch size = 1)
 2. **GPU**: NVIDIA GeForce RTX 5060 Laptop GPU (batch size = 1 and batch size = 32)
+
+### 3.5 Replay Buffer Memory Cost ($M$)
+Quantifies the patient image storage requirement imposed by memory-based replay, directly addressing medical data privacy (HIPAA/GDPR) constraints:
+$$M \in \{0, 60, 120\} \quad (\text{number of stored raw patient images})$$
+- **Naive Fine-Tuning, LwF, and Joint Training**: $M = 0$ (zero old patient images stored).
+- **Experience Replay**: $M = 60$ images total or $M = 120$ images total stored across all completed tasks, sampled via class-balanced random selection.
+- Reported directly alongside Accuracy, Forgetting ($F$), and $\text{BWT}$ in all comparison tables to evaluate the performance-privacy trade-off.
