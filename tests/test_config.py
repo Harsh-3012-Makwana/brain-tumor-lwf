@@ -16,7 +16,7 @@ def test_load_base_config():
     assert "project" in cfg
     assert "seeds" in cfg
     assert cfg["seeds"] == [42, 123]
-    assert cfg["data"]["image_size"] == [224, 224]
+    assert cfg["data"]["image_size"] == [150, 150]
 
 
 def test_merge_configs():

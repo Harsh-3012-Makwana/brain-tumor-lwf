@@ -1,10 +1,10 @@
-# PyTorch with CUDA 12.4 support (Windows x86_64)
---extra-index-url https://download.pytorch.org/whl/cu124
-torch==2.6.0+cu124
-torchvision==0.21.0+cu124
+# PyTorch with CUDA 12.8 support (Windows x86_64, Blackwell sm_120 compatible)
+--extra-index-url https://download.pytorch.org/whl/cu128
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
 
 # Core numerical, vision, and data processing
-numpy>=1.26.0,<2.0.0
+numpy>=1.26.0
 opencv-python>=4.9.0.80
 albumentations>=1.4.0
 scikit-learn>=1.4.0

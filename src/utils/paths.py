@@ -21,6 +21,7 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 INTERIM_DATA_DIR = DATA_DIR / "interim"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 SPLITS_DATA_DIR = DATA_DIR / "splits"
+SPLITS_DIR = SPLITS_DATA_DIR
 
 # Results subdirectories
 RUNS_DIR = RESULTS_DIR / "runs"

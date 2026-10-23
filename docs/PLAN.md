@@ -157,11 +157,14 @@ flowchart TD
   - [x] Base YAML configuration system and schema documentation.
   - [x] Seed-setting determinism utilities and unit tests (`[42, 123]`).
   - [x] Core planning documents updated: `docs/PLAN.md`, `docs/DECISIONS.md`, `docs/EXPERIMENT_MATRIX.md`, `docs/METRICS.md`.
-- [ ] **Phase 1: Data Engineering & Auditing**
-  - [ ] Place dataset in `data/raw/` and verify counts.
-  - [ ] Audit image resolutions, aspect ratios, corrupted files, and near-duplicates (`pHash`).
-  - [ ] Implement OpenCV extreme contour cropping and skull-stripping.
-  - [ ] Generate deterministic stratified train/val splits and incremental task manifests for seeds `42` and `123`.
+- [x] **Phase 1: Data Engineering & Auditing**
+  - [x] Place dataset in `data/raw/` and verify counts: 7,200 total images (5,600 Training, 1,600 Testing; exactly 1,400 train and 400 test per class across glioma, meningioma, notumor, pituitary).
+  - [x] Audit image resolutions, aspect ratios, corrupted files (0 corrupted), exact duplicates (138 train groups, 15 test groups, 0 cross-split exact duplicates), and near-duplicates (`pHash` Hamming $\le 4$).
+  - [x] Implement OpenCV extreme contour cropping with center crop fallback (measured fallback rate: 2.06%, 148 / 7,200 images).
+  - [x] Standardize to $150 \times 150 \times 3$ (grayscale replicated to RGB) and cache in `data/processed/`.
+  - [x] Generate deterministic stratified train/val splits (840 val, 4,760 train) and incremental task manifests for seeds `42` and `123`, keeping duplicate clusters intact.
+  - [x] PyTorch `MRIDataset`, Albumentations augmentation pipelines, task builder for Orders A and B, Joint datasets, and class-balanced replay buffer sampler ($M=60, 120$).
+  - [x] Unit test data suite (`tests/test_data.py`: 13 total project tests passing).
 - [ ] **Phase 2: Custom CNN Architecture Design**
   - [ ] Implement 4-block Custom CNN (target roughly 1M to 3M, strictly <5M params) with GAP and expandable classifier head.
   - [ ] Unit test forward pass tensor dimensions and head expansion mechanics.

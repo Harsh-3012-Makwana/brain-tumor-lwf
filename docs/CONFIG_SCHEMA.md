@@ -34,8 +34,9 @@ paths:
 data:
   dataset_name: str       # Benchmark identifier
   num_total_classes: int  # Total diagnostic categories (4)
-  class_names: list[str]  # ["glioma", "meningioma", "pituitary", "notumor"]
-  image_size: list[int]   # Input spatial resolution: [height, width] = [224, 224]
+  class_names: list[str]  # ["glioma", "meningioma", "notumor", "pituitary"]
+  global_label_map: dict  # {glioma: 0, meningioma: 1, notumor: 2, pituitary: 3}
+  image_size: list[int]   # Input spatial resolution: [height, width] = [150, 150]
   channels: int           # Channel count: 3 (RGB)
   split_ratios:
     val_from_train_ratio: float  # Stratified split fraction from train set (0.15)

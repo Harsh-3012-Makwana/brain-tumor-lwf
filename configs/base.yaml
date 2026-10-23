@@ -37,9 +37,20 @@ data:
   class_names:
     - "glioma"
     - "meningioma"
-    - "pituitary"
     - "notumor"
-  image_size: [224, 224]
+    - "pituitary"
+  # Global label IDs fixed forever
+  label_to_id:
+    glioma: 0
+    meningioma: 1
+    notumor: 2
+    pituitary: 3
+  id_to_label:
+    0: "glioma"
+    1: "meningioma"
+    2: "notumor"
+    3: "pituitary"
+  image_size: [150, 150]
   channels: 3
   split_ratios:
     val_from_train_ratio: 0.15 # Stratified 15% carve-out from official 5,712 train set (~857 val, ~4,855 train)

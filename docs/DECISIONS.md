@@ -86,3 +86,19 @@ results/runs/<method>_<order>_<seed>_<timestamp>/
 - **Mitigation Strategy**:
   1. Implement class-weighted cross-entropy loss or balanced batch sampling during task training.
   2. Evaluate models using Macro-F1 and balanced accuracy alongside raw top-1 accuracy.
+
+---
+
+## 5. Phase 1 Data Engineering Decisions & Audited Ground Truth
+
+| Parameter / Aspect | Frozen Specification | Justification & Implementation Details |
+|:---|:---|:---|
+| **Raw Dataset Ground Truth** | 7,200 total valid images (5,600 Training, 1,600 Testing). Exactly 1,400 train and 400 test per class. | Discovered during Task 1 disk scan. Perfectly balanced classes across both splits. Raw files are strictly immutable. |
+| **Global Label Mapping** | `glioma: 0`, `meningioma: 1`, `notumor: 2`, `pituitary: 3` | Fixed permanent IDs across all task heads, datasets, and metrics. |
+| **Input Resolution & Channels** | $150 \times 150$, 3 channels (grayscale replicated to RGB) | Matches proposal specification and enables standard 3-channel convolutional feature extractors. |
+| **Contour Cropping & Fallback** | Gaussian blur ($k=5$), Otsu threshold, largest contour with 2% margin. Fallback to center crop if area < 20% or touches all 4 edges. | Isolates intracranial brain tissue from black background margins. Measured fallback rate across all 7,200 images is **2.06%** (148 images). |
+| **Normalization Choice** | ImageNet statistics: mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225] | Standardized benchmark scaling; yields zero-centered, unit-variance distributions across replicated channels, improving gradient stability. |
+| **Duplicate Isolation in Splits** | Disjoint-set clustering using SHA-256 and 64-bit DCT pHash (Hamming distance $\le 4$) | Guarantees that near-duplicate or identical patient slices within training are kept intact within either train or val, preventing split leakage. |
+| **Train / Val Partition** | Stratified 15% validation: 840 val images (210/class), 4,760 train images (1,190/class) per seed (`42`, `123`). | Provides unbiased per-task hyperparameter evaluation and early stopping. Test split (1,600 images) remains strictly held out. |
+| **Hardware Compatibility** | Upgraded to PyTorch 2.11.0+cu128 and torchvision 0.26.0+cu128 | Required for native kernel support on the RTX 5060 Laptop GPU (Blackwell `sm_120`), eliminating PyTorch 2.6.0 cu124 missing kernel errors. |
+
