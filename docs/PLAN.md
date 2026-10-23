@@ -52,20 +52,36 @@
 
 ---
 
-## 4. Dataset Specification
+## 4. Dataset Specification & Audited Ground Truth
 
-- **Dataset**: Masoud Nickparvar Brain Tumor MRI Dataset.
-- **Total Images**: 7,023 2D MRI slices.
-- **Classes**: 4 categories:
-  - `glioma`: ~1,621 images
-  - `meningioma`: ~1,645 images
-  - `pituitary`: ~1,757 images
-  - `notumor`: ~2,000 images
+- **Dataset**: Brain Tumor MRI Dataset (7,200-image balanced distribution).
+- **Total Images**: 7,200 2D MRI slices across 4 classes (**0 corrupted files**).
+- **Classes**: Exactly 1,800 images per class (1:1:1:1 balanced distribution):
+  - `glioma`: 1,400 train, 400 test (1,800 total) -> Global ID: 0
+  - `meningioma`: 1,400 train, 400 test (1,800 total) -> Global ID: 1
+  - `notumor`: 1,400 train, 400 test (1,800 total) -> Global ID: 2
+  - `pituitary`: 1,400 train, 400 test (1,800 total) -> Global ID: 3
 - **Official Split**:
-  - Official Train: 5,712 images
-  - Official Test: 1,311 images (**held out strictly for final evaluation; never touched during training or tuning**)
-- **Validation Split**: Stratified 15% carved from the official train set (~857 validation images, ~4,855 active training images).
-- **Format**: Standardized RGB $224 \times 224$ pixels.
+  - Official Train: 5,600 images
+  - Official Test: 1,600 images (**held out strictly for final evaluation; never touched during training or tuning**)
+- **Validation Split**: Stratified 15% carved from train set per seed (840 validation images, 4,760 active training images), keeping near-duplicate clusters intact.
+- **Format**: Standardized RGB $150 \times 150$ pixels (grayscale replicated to 3 channels).
+- **Known Limitation**: 2,022 near-duplicate train/test pairs found in Phase 1 audit; test set absolute accuracy may be optimistic, but relative method ranking remains strictly fair.
+
+---
+
+## 4.1 Custom CNN Model Architecture & Width Variants
+
+- **Architecture Family**: 4 Conv blocks (`Conv3x3 -> BatchNorm -> ReLU -> MaxPool2x2`), Global Average Pooling (GAP), `Dropout(0.4)`, and `ExpandableLinearHead`.
+- **Width Variants Suite** (all stay strictly under 5M parameter cap with 4 classes):
+
+| Variant | Channel Configuration | Total Params | FLOPs (M) | Model Size | CPU Latency | GPU Latency | Cap Check (<5M) |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Small** | `[32, 64, 128, 128]` | **241,700** | 274.43 M | 0.92 MB | 2.36 ± 0.22 ms | 0.49 ± 0.03 ms | **PASS** |
+| **Medium** | `[64, 128, 256, 288]` | **1,036,548** | 1077.56 M | 3.96 MB | 5.32 ± 0.59 ms | 0.60 ± 0.04 ms | **PASS** |
+| **Large** | `[64, 160, 384, 544]` | **2,531,396** | 1929.55 M | 9.67 MB | 8.63 ± 0.39 ms | 1.25 ± 0.04 ms | **PASS** |
+
+*Variant selection is deferred to Phase 3 based on standard joint training validation performance.*
 
 ---
 
@@ -165,9 +181,13 @@ flowchart TD
   - [x] Generate deterministic stratified train/val splits (840 val, 4,760 train) and incremental task manifests for seeds `42` and `123`, keeping duplicate clusters intact.
   - [x] PyTorch `MRIDataset`, Albumentations augmentation pipelines, task builder for Orders A and B, Joint datasets, and class-balanced replay buffer sampler ($M=60, 120$).
   - [x] Unit test data suite (`tests/test_data.py`: 13 total project tests passing).
-- [ ] **Phase 2: Custom CNN Architecture Design**
-  - [ ] Implement 4-block Custom CNN (target roughly 1M to 3M, strictly <5M params) with GAP and expandable classifier head.
-  - [ ] Unit test forward pass tensor dimensions and head expansion mechanics.
+- [x] **Phase 2: Custom CNN Architecture Design**
+  - [x] Implement 4-block Custom CNN family with GAP, `Dropout(0.4)`, and decoupled feature extraction.
+  - [x] Implement 3 width variants (`small`: 0.24M, `medium`: 1.04M, `large`: 2.53M), all strictly under 5M limit with 4 classes.
+  - [x] Implement `ExpandableLinearHead` copying weights bit-identically across task expansions ($2 \to 3 \to 4$ classes).
+  - [x] Expose distillation access via `forward_old_logits()` and `get_old_logits()`.
+  - [x] Implement profiling utilities (parameters, FLOPs via fvcore/thop, model size, CPU/GPU latency).
+  - [x] Unit test model suite (`tests/test_models.py`: 24 total project tests passing, including GPU forward+backward pass).
 - [ ] **Phase 3: Standard Training (Joint Upper Bound)**
   - [ ] Implement core `Trainer` with early stopping, mixed precision, and metric logging.
   - [ ] Train Joint Training upper bound oracle on all 4 classes for Custom CNN across seeds `42` and `123`.

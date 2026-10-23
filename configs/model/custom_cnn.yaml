@@ -1,25 +1,53 @@
-# Custom Lightweight CNN Architecture Configuration (<5M parameters, target roughly 1M to 3M)
+# Custom Lightweight CNN Architecture Configuration (<5M parameters)
+# Three width variants are provided. The active variant is chosen via 'active_variant'.
+# All three variants stay strictly under the 5M parameter cap with a 4-class head.
+
 name: "custom_cnn"
 type: "custom"
-max_parameter_budget: 5000000
-target_parameter_range: [1000000, 3000000]
+hard_param_limit: 5000000
 
-backbone:
-  in_channels: 3
-  # 4 convolutional blocks: 32 -> 64 -> 128 -> 128
-  stage_channels: [32, 64, 128, 128]
-  kernel_size: 3
-  stride: 1
-  padding: 1
-  activation: "relu"
-  use_batchnorm: true
-  pool_type: "max"
-  pool_size: 2
-  dropout_rates: [0.1, 0.1, 0.2, 0.2]
+# Active variant to build: "small", "medium", or "large"
+active_variant: "small"
+
+variants:
+  small:
+    description: "Proposal baseline 4-block layout (32, 64, 128, 128)"
+    target_params: "roughly 0.24M (< 0.5M)"
+    stage_channels: [32, 64, 128, 128]
+    convs_per_block: 1
+    kernel_size: 3
+    stride: 1
+    padding: 1
+    pool_size: 2
+    dropout_rates: [0.0, 0.0, 0.0, 0.0]
+    gap_dropout: 0.4
+
+  medium:
+    description: "Wider 4-block layout (64, 128, 256, 288)"
+    target_params: "roughly 1.04M (~1.0M target)"
+    stage_channels: [64, 128, 256, 288]
+    convs_per_block: 1
+    kernel_size: 3
+    stride: 1
+    padding: 1
+    pool_size: 2
+    dropout_rates: [0.0, 0.0, 0.0, 0.0]
+    gap_dropout: 0.4
+
+  large:
+    description: "High-capacity 4-block layout (64, 160, 384, 544)"
+    target_params: "roughly 2.53M (~2.5M target)"
+    stage_channels: [64, 160, 384, 544]
+    convs_per_block: 1
+    kernel_size: 3
+    stride: 1
+    padding: 1
+    pool_size: 2
+    dropout_rates: [0.0, 0.0, 0.0, 0.0]
+    gap_dropout: 0.4
 
 head:
   type: "expandable_linear"
-  pooling: "adaptive_avg_pool2d"
-  fc_layers: [128] # Dense feature aggregation before logits
-  dropout: 0.3
-  initial_num_classes: 2 # Dynamically updated by incremental runner
+  initial_num_classes: 2
+  total_classes: 4
+  dropout: 0.4

@@ -102,3 +102,17 @@ results/runs/<method>_<order>_<seed>_<timestamp>/
 | **Train / Val Partition** | Stratified 15% validation: 840 val images (210/class), 4,760 train images (1,190/class) per seed (`42`, `123`). | Provides unbiased per-task hyperparameter evaluation and early stopping. Test split (1,600 images) remains strictly held out. |
 | **Hardware Compatibility** | Upgraded to PyTorch 2.11.0+cu128 and torchvision 0.26.0+cu128 | Required for native kernel support on the RTX 5060 Laptop GPU (Blackwell `sm_120`), eliminating PyTorch 2.6.0 cu124 missing kernel errors. |
 
+---
+
+## 6. Phase 2 Custom CNN Architectural Decisions & Known Limitations
+
+| Parameter / Aspect | Frozen Specification | Justification & Implementation Details |
+|:---|:---|:---|
+| **Dataset Selection & Ground Truth** | 7,200-image balanced dataset (5,600 train / 1,600 test; 1,400/400 per class) | Deliberate decision: provides a perfectly balanced class distribution ($1:1:1:1$) across both splits, avoiding training bias from artificial skew in the older 7,023-image distribution. |
+| **Known Scientific Limitation: Near-Duplicate Slices** | 2,022 cross-split near-duplicate pairs ($\text{pHash Hamming} \le 4$) exist between Train and Test | Patient slice continuity across the merged source collections means official test set evaluation may yield optimistic absolute accuracy scores. Research focus is strictly on **relative comparison** between continual learning methods (FT vs. LwF vs. Replay vs. Joint) on identical splits. |
+| **Architecture Family** | 4 conv blocks (`Conv3x3 -> BatchNorm -> ReLU -> MaxPool2x2`) $\to$ GAP $\to$ `Dropout(0.4)` $\to$ `ExpandableLinearHead` | Lightweight, edge-deployable topology without dense flattening layers, maximizing spatial parameter efficiency. |
+| **Width Variants Suite** | `small` (241.7k params), `medium` (1.04M params), `large` (2.53M params) | Provides three controlled capacity levels within the target range (<5M cap). Main variant selection is deferred to Phase 3 based on validation results. |
+| **Expandable Classification Head** | Linear head with `expand(n_new_classes)` copying previous weights bit-identically | Prevents artificial parameter perturbation of previously learned classes when introducing novel tumor categories. Verified via `torch.equal(old_w, new_w[:old_c])`. |
+| **Distillation Interface** | `forward_old_logits()` and `get_old_logits()` exposed on model | Provides clean slicing of old-class logits for LwF teacher distillation without coupling architecture code to training loops. |
+
+

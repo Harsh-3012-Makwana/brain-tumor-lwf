@@ -1,0 +1,4 @@
+variant,total_params,trainable_params,backbone_params,head_params,flops,mflops,model_size_mb,cpu_latency_ms,cpu_latency_std,gpu_latency_ms,gpu_latency_std,budget_check (<5M)
+small,241700,241700,241184,516,274433664,274.43,0.92,2.36,0.22,0.49,0.03,PASS
+medium,1036548,1036548,1035392,1156,1077557408,1077.56,3.96,5.32,0.59,0.6,0.04,PASS
+large,2531396,2531396,2529216,2180,1929553120,1929.55,9.67,8.63,0.39,1.25,0.04,PASS

@@ -83,10 +83,23 @@ incremental:
 model:
   name: str               # "custom_cnn" (sole model architecture in project)
   hard_param_limit: int   # Strict upper bound (5000000; target roughly 1M to 3M)
-  conv_channels: list[int]# Block channel sequence [32, 64, 128, 128]
-  kernel_size: int        # Convolution kernel size (3)
-  dropout_rate: float     # Dropout regularization rate (0.3)
-  use_batchnorm: bool     # Batch normalization toggle (true)
-  pooling: str            # Inter-block pooling ("max")
-  head_pooling: str       # Classifier head pooling ("global_avg")
+  active_variant: str     # Active width variant: "small" (0.24M), "medium" (1.04M), or "large" (2.53M)
+  variants:
+    small:
+      stage_channels: list[int]  # [32, 64, 128, 128] (~0.24M params, proposal baseline)
+      convs_per_block: int       # 1
+      gap_dropout: float         # 0.4
+    medium:
+      stage_channels: list[int]  # [64, 128, 256, 288] (~1.04M params)
+      convs_per_block: int       # 1
+      gap_dropout: float         # 0.4
+    large:
+      stage_channels: list[int]  # [64, 160, 384, 544] (~2.53M params)
+      convs_per_block: int       # 1
+      gap_dropout: float         # 0.4
+  head:
+    type: str             # "expandable_linear"
+    initial_num_classes: int # Initial output size (e.g., 2 for Task 1)
+    total_classes: int    # Cumulative output size (4)
+    dropout: float        # Post-GAP dropout rate (0.4)
 ```
