@@ -13,8 +13,7 @@ This directory contains the production-grade modular Python package for all data
   - `tasks/`: Class-incremental task builder assigning classes to sequential steps ($T_1, T_2, T_3$).
 
 - `models/`:
-  - `custom_cnn/`: 4-block custom lightweight CNN (<5M parameters, target 1M-3M; main model) with Conv2D, BatchNorm, ReLU, MaxPool, and Global Average Pooling.
-  - `baselines/`: Pretrained reference model (ResNet18 with ImageNet weights and expandable head).
+  - `custom_cnn/`: 4-block custom lightweight CNN (<5M parameters, target roughly 1M to 3M) with Conv2D, BatchNorm, ReLU, MaxPool, and Global Average Pooling.
   - `heads/`: Expandable classifier heads supporting dynamic output expansion across incremental tasks.
   - `utils/`: Parameter counting, FLOPs calculation, and architectural profiling utilities.
 
@@ -26,7 +25,7 @@ This directory contains the production-grade modular Python package for all data
   - `tuning/`: Optional Optuna objective runners for hyperparameter exploration.
 
 - `incremental/`:
-  - `strategies/`: Continual learning methods evaluated across both models: Naive Fine-Tuning (lower bound), Learning without Forgetting (LwF; main method), Experience Replay (fixed buffers of 60 and 120 images with class-balanced random selection), and Joint Training (upper bound oracle).
+  - `strategies/`: Continual learning methods evaluated on the custom CNN: Naive Fine-Tuning (lower bound), Learning without Forgetting (LwF; main method), Experience Replay (fixed buffers of 60 and 120 images with class-balanced random selection), and Joint Training (upper bound oracle).
   - `buffers/`: Exemplar replay memory managers (total size 60 or 120 images, class-balanced random selection filled from each finished task).
   - `teachers/`: Snapshotting and inference through frozen previous-task teacher models.
   - `runner/`: Orchestrator executing the complete sequence of incremental tasks.

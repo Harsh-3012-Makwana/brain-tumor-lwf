@@ -13,13 +13,12 @@
 In clinical neuro-oncology, magnetic resonance imaging (MRI) diagnostic models encounter continuous domain and class shifts as newly characterized tumor sub-types or institutional imaging protocols emerge. Storing historical patient scans to periodically retrain models from scratch is heavily restricted by data privacy regulations (e.g., HIPAA, GDPR) and local storage constraints. 
 
 **Core Research Question**:  
-> *Can a lightweight custom CNN (<5M params) retain old tumor classes under class-incremental learning with LwF, compared with a pretrained ResNet18, and how does it compare with naive fine-tuning, tiny-buffer experience replay (60 and 120 images), and joint training?*
+> *Can a lightweight custom CNN (<5M params) retain old tumor classes under class-incremental learning with LwF, and how does it compare with naive fine-tuning, tiny-buffer experience replay (60 and 120 images), and joint training?*
 
-Using the 7,023-image Masoud Nickparvar Brain Tumor MRI dataset across 4 classes (`glioma`, `meningioma`, `pituitary`, `notumor`), we evaluate two model families:
-1. **Custom CNN (Main Model)**: Built from scratch, strictly $<5\text{M}$ parameters (target range roughly 1M to 3M; 4 conv blocks with BatchNorm, ReLU, MaxPool; followed by Global Average Pooling and an expandable classification head).
-2. **ResNet18 (Reference Model)**: Pretrained on ImageNet-1k with an expandable classification head.
+Using the 7,023-image Masoud Nickparvar Brain Tumor MRI dataset across 4 classes (`glioma`, `meningioma`, `pituitary`, `notumor`), this research evaluates continual learning methods exclusively on **one single model architecture**:
+- **Custom CNN**: Built from scratch, strictly $<5\text{M}$ parameters (target range roughly 1M to 3M; 4 convolutional blocks with BatchNorm, ReLU, MaxPool; followed by Global Average Pooling and an expandable classification head).
 
-We benchmark 4 incremental learning methods plus Joint Training across two task presentation sequences (Order A and Order B) and two deterministic seeds (`42`, `123`), producing a focused 36-run experimental matrix.
+We benchmark 4 incremental learning methods plus Joint Training across two task presentation sequences (Order A and Order B) and two deterministic seeds (`42`, `123`), producing a focused 18-run experimental matrix.
 
 ---
 
@@ -35,7 +34,7 @@ brain-tumor-lwf/
 │   └── splits/                       # Stratified train/val/test and incremental task manifests
 ├── src/
 │   ├── data/                         # Audit, contour preprocessing, augmentations, datasets, splitting, tasks
-│   ├── models/                       # Custom lightweight CNN (<5M params), ResNet18 reference, expandable heads
+│   ├── models/                       # Custom lightweight CNN (<5M params), expandable heads, profiling utils
 │   ├── training/                     # Standard trainers, CE/distillation losses, optimizers, callbacks, tuning
 │   ├── incremental/                  # Continual learning strategies (LwF, fine-tuning, replay, joint, teachers)
 │   ├── evaluation/                   # Metrics (Accuracy, F1, AIA, Forgetting, BWT), FLOPs/latency, Grad-CAM
@@ -142,26 +141,23 @@ Models are evaluated across two distinct 3-task class-incremental presentation s
 
 *Results table placeholder — to be populated upon experimental execution in Phase 6.*
 
-| Model | Method | Order | Buffer ($M$ Images) | Avg Incr Acc ($A_{\text{avg}}$) % | Final Accuracy % | Forgetting ($F$) % | Backward Transfer ($\text{BWT}$) % | Params | Latency (ms) |
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Custom CNN** | Naive Fine-Tuning | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Custom CNN** | Naive Fine-Tuning | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Custom CNN** | Learning without Forgetting (LwF) | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Custom CNN** | Learning without Forgetting (LwF) | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Custom CNN** | Experience Replay (60) | A | 60 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Custom CNN** | Experience Replay (60) | B | 60 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Custom CNN** | Experience Replay (120) | A | 120 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Custom CNN** | Experience Replay (120) | B | 120 | *TBD* | *TBD* | *TBD* | *TBD* | <5M | *TBD* |
-| **Custom CNN** | Joint Training (Upper Bound) | - | Full | *N/A* | *TBD* | *N/A* | *N/A* | <5M | *TBD* |
-| **ResNet18** | Naive Fine-Tuning | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
-| **ResNet18** | Naive Fine-Tuning | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
-| **ResNet18** | Learning without Forgetting (LwF) | A | 0 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
-| **ResNet18** | Learning without Forgetting (LwF) | B | 0 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
-| **ResNet18** | Experience Replay (60) | A | 60 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
-| **ResNet18** | Experience Replay (60) | B | 60 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
-| **ResNet18** | Experience Replay (120) | A | 120 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
-| **ResNet18** | Experience Replay (120) | B | 120 | *TBD* | *TBD* | *TBD* | *TBD* | ~11.7M | *TBD* |
-| **ResNet18** | Joint Training (Upper Bound) | - | Full | *N/A* | *TBD* | *N/A* | *N/A* | ~11.7M | *TBD* |
+| Method | Order | Avg Accuracy ($A_{\text{avg}}$) % | Forgetting ($F$) % | Backward Transfer ($\text{BWT}$) % | Memory Cost (Images) |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **Naive Fine-Tuning** | A | *TBD* | *TBD* | *TBD* | 0 |
+| **Naive Fine-Tuning** | B | *TBD* | *TBD* | *TBD* | 0 |
+| **Learning without Forgetting (LwF)** | A | *TBD* | *TBD* | *TBD* | 0 |
+| **Learning without Forgetting (LwF)** | B | *TBD* | *TBD* | *TBD* | 0 |
+| **Experience Replay (60)** | A | *TBD* | *TBD* | *TBD* | 60 |
+| **Experience Replay (60)** | B | *TBD* | *TBD* | *TBD* | 60 |
+| **Experience Replay (120)** | A | *TBD* | *TBD* | *TBD* | 120 |
+| **Experience Replay (120)** | B | *TBD* | *TBD* | *TBD* | 120 |
+| **Joint Training (Upper Bound)** | - | *TBD* | *N/A* | *N/A* | 0 |
+
+### Custom CNN Architectural Efficiency Profile
+- **Parameter Count**: <5,000,000 (Target: ~1M to 3M)
+- **FLOPs (MACs)**: *TBD at 224x224 input*
+- **Model Size (Disk Footprint)**: *TBD (MB)*
+- **Inference Latency**: *TBD (CPU & GPU ms/slice)*
 
 ---
 

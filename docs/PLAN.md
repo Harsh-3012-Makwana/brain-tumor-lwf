@@ -3,13 +3,13 @@
 ## 1. Research Question & Hypothesis
 
 ### 1.1 Core Research Question
-> **Can a lightweight custom CNN (<5M params) retain old tumor classes under class-incremental learning with LwF, compared with a pretrained ResNet18, and how does it compare with naive fine-tuning, tiny-buffer experience replay (60 and 120 images), and joint training?**
+> **Can a lightweight custom CNN (<5M params) retain old tumor classes under class-incremental learning with LwF, and how does it compare with naive fine-tuning, tiny-buffer experience replay (60 and 120 images), and joint training?**
 
 ### 1.2 Scientific Hypotheses
 1. **Catastrophic Forgetting Mitigation**: In a class-incremental scenario ($T_1 \to T_2 \to T_3$), naive fine-tuning will suffer catastrophic representation drift on early tumor classes. LwF distillation loss will constrain activation drift on shared feature representations, reducing forgetting significantly without storing patient exemplar images ($M=0$).
-2. **Compact Scratch Model vs. Pretrained Overparameterized Model**: The custom lightweight CNN (<5M parameters, target 1M-3M) trained from scratch will exhibit distinct stability-plasticity dynamics compared to ImageNet-pretrained ResNet18 (~11.7M parameters). Pretrained features in ResNet18 may offer stronger feature generalizability, but LwF distillation will provide vital regularization for the compact custom CNN.
-3. **Replay Efficiency**: Tiny exemplar buffers (60 and 120 images total, corresponding to 15–30 images/class after all classes are learned) will establish a measurable retention-vs-privacy baseline, demonstrating the degree of retention that can be achieved with minimal patient data storage compared to zero-storage LwF.
-4. **Task Presentation Sensitivity**: Reversing class presentation order (Order A vs Order B) will test representation retention robustness when healthy control tissue (`notumor`) is introduced initial-stage versus final-stage.
+2. **Compact Model Regularization**: A lightweight custom CNN (<5M parameters, target roughly 1M to 3M) with Global Average Pooling (GAP) offers a compact parameter footprint where shared convolutional filters must accommodate expanding class representations. Distillation loss from the frozen previous-task model will regularize shared weights and prevent severe catastrophic forgetting.
+3. **Replay Efficiency & Memory Trade-off**: Tiny exemplar buffers (fixed at 60 and 120 images total across all old classes, corresponding to 15–30 images/class after all classes are learned) will establish an empirical retention benchmark, quantifying the exact performance gain achieved by storing minimal patient data versus the zero-storage privacy-preserving LwF approach.
+4. **Task Presentation Sensitivity**: Reversing class presentation order (Order A vs Order B) will reveal representation retention robustness when healthy control tissue (`notumor`) is introduced initial-stage versus final-stage.
 
 ---
 
@@ -17,17 +17,15 @@
 
 1. **Scaffold & Reproducibility**: Maintain a modular, configuration-driven, seed-deterministic framework across PyTorch, NumPy, and system runtimes evaluated across 2 fixed seeds (`42`, `123`).
 2. **Rigorous Data Curation**: Audit the 7,023-image Nickparvar dataset for cross-source leakage, corruptions, and duplicate slices; isolate an untouched 1,311-image test set and a stratified 15% validation split (~857 images).
-3. **Dual Model Architecture**: 
-   - Engineer a 4-block Custom ConvNet strictly under 5,000,000 parameters (target roughly 1M to 3M) with Global Average Pooling (GAP) and expandable classifier head (Main Model).
-   - Configure a pretrained ResNet18 with an expandable classifier head (Reference Model).
-4. **Continual Learning Pipeline**: Implement and evaluate 4 incremental learning methods across BOTH models using identical training pipelines:
+3. **Custom Lightweight Architecture**: Engineer a single custom 4-block ConvNet strictly under 5,000,000 parameters (target roughly 1M to 3M) with BatchNorm, ReLU, MaxPool, Global Average Pooling (GAP), and an expandable classifier head.
+4. **Continual Learning Pipeline**: Implement and evaluate 4 incremental learning methods plus Joint training on the custom CNN:
    - Naive Fine-Tuning (lower bound)
    - Learning without Forgetting (LwF; main method, $M=0$)
    - Experience Replay with 60 images ($M=60$, class-balanced random selection)
    - Experience Replay with 120 images ($M=120$, class-balanced random selection)
    - Joint Training (upper bound oracle, all 4 classes at once)
-5. **Trade-Off & Sensitivity Analysis**: Compare retention vs. memory cost ($M$), distillation temperature ($T$), and task presentation sequences (Order A vs Order B). Optuna hyperparameter tuning is optional.
-6. **Clinical Explainability**: Characterize feature drift using Grad-CAM attention visualizations across tasks.
+5. **Trade-Off & Sensitivity Analysis**: Evaluate the trade-off between retention and memory cost ($M$), distillation temperature ($T$), and task presentation sequences (Order A vs Order B). Optuna hyperparameter tuning is optional.
+6. **Clinical Explainability**: Characterize feature drift using Grad-CAM attention visualizations across incremental tasks.
 7. **Deployment & Export**: Export the optimal model to ONNX, benchmark CPU/GPU latency, and deploy an interactive Gradio diagnostic demonstration.
 
 ---
@@ -37,17 +35,16 @@
 ### 3.1 In-Scope
 - **Diagnostic Classes**: 4 mutually exclusive categories: `glioma`, `meningioma`, `pituitary`, `notumor`.
 - **Continual Learning Paradigm**: Class-Incremental Learning (CIL) across 3 sequential tasks ($2 \to 1 \to 1$ class increments) with a unified, shared classification head.
-- **Models**:
-  1. **Custom CNN**: Scratch-trained, 4 conv blocks (32, 64, 128, 128), BatchNorm, ReLU, MaxPool, GAP, expandable head (<5M params, target 1M-3M). **Main model**.
-  2. **ResNet18**: Pretrained on ImageNet-1k, expandable head. **Reference model**.
-- **Methods**: Naive Fine-Tuning, LwF, Experience Replay ($M=60$), Experience Replay ($M=120$), and Joint Training (upper bound).
+- **Model**: **Single model architecture**: Custom CNN built from scratch (<5M params, target roughly 1M to 3M; 4 conv blocks with BatchNorm, ReLU, MaxPool; Global Average Pooling and an expandable classification head).
+- **Methods**: Comparison is strictly between continual learning methods on the custom CNN: Naive Fine-Tuning, LwF, Experience Replay ($M=60$), Experience Replay ($M=120$), and Joint Training (upper bound).
 - **Task Orders**: Order A and Order B.
 - **Seeds**: 2 seeds (`42`, `123`).
 - **Metrics**: Accuracy, Macro Precision, Recall, Macro-F1, Average Incremental Accuracy ($A_{\text{avg}}$), Forgetting ($F$), Backward Transfer ($\text{BWT}$), Parameter Count, FLOPs, Latency, and Memory Cost ($M$ stored patient images).
 - **Interpretability & Export**: Grad-CAM attention drift mapping, ONNX export, and local Gradio demonstration.
 
 ### 3.2 Out-of-Scope
-- VGG16 or other heavy legacy architectures.
+- ResNet18, VGG16, or any other comparison model architecture.
+- Model-to-model comparisons (all comparisons are between continual learning methods on the custom CNN).
 - Hybrid LwF + Replay or additional baseline families.
 - 3D volumetric MRI segmentation (input is strictly 2D axial/coronal/sagittal slices).
 - Task-incremental setups requiring task IDs during test inference.
@@ -103,24 +100,24 @@ $$\text{BWT} = \frac{1}{N - 1} \sum_{j=1}^{N - 1} (R_{N, j} - R_{j, j})$$
 ### 6.4 Replay Buffer Memory Cost & Efficiency Metrics
 - **Memory Cost ($M$)**: Stored image count ($M=0$ for FT, LwF, Joint; $M=60$ or $M=120$ for Replay), reported directly next to Accuracy and Forgetting.
 - **Classification**: Top-1 Accuracy, Macro-Precision, Macro-Recall, Macro-F1, per-class Confusion Matrix.
-- **Efficiency**: Parameter count ($<5\text{M}$ for Custom CNN), FLOPs, Model Size (MB), Latency (ms/slice on CPU and GPU).
+- **Efficiency (Custom CNN)**: Parameter count (<5M), FLOPs, Model Size (MB), Latency (ms/slice on CPU and GPU).
 
 ---
 
 ## 7. Experiment Matrix Summary
 
-**Total: 36 experimental runs**
-- **Incremental Runs**: 4 methods (`finetune`, `lwf`, `replay60`, `replay120`) $\times$ 2 models (`Custom CNN`, `ResNet18`) $\times$ 2 orders (`Order A`, `Order B`) $\times$ 2 seeds (`42`, `123`) = **32 runs**.
-- **Joint Upper Bound Runs**: 1 method (`joint`) $\times$ 2 models (`Custom CNN`, `ResNet18`) $\times$ 2 seeds (`42`, `123`) = **4 runs**.
+**Total: 18 experimental runs**
+- **Incremental Runs**: 4 methods (`finetune`, `lwf`, `replay60`, `replay120`) $\times$ 2 orders (`Order A`, `Order B`) $\times$ 2 seeds (`42`, `123`) = **16 runs**.
+- **Joint Upper Bound Runs**: 1 method (`joint`) $\times$ 2 seeds (`42`, `123`) = **2 runs**.
 
-| Strategy | Models | Memory Buffer ($M$) | Distillation ($\lambda, T$) | Task Orders | Seeds | Runs |
+| Strategy | Architecture | Memory Buffer ($M$) | Distillation ($\lambda, T$) | Task Orders | Seeds | Runs |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|
-| **Naive Fine-Tuning** | Custom CNN, ResNet18 | 0 | None | Order A, Order B | 42, 123 | 8 |
-| **Learning without Forgetting** | Custom CNN, ResNet18 | 0 | $\lambda=1.0, T=2.0$ | Order A, Order B | 42, 123 | 8 |
-| **Experience Replay (60)** | Custom CNN, ResNet18 | 60 images | None | Order A, Order B | 42, 123 | 8 |
-| **Experience Replay (120)** | Custom CNN, ResNet18 | 120 images | None | Order A, Order B | 42, 123 | 8 |
-| **Joint Training (Upper Bound)**| Custom CNN, ResNet18 | 0 (all data) | N/A | Order-independent | 42, 123 | 4 |
-| **Total** | | | | | | **36** |
+| **Naive Fine-Tuning** | Custom CNN | 0 | None | Order A, Order B | 42, 123 | 4 |
+| **Learning without Forgetting** | Custom CNN | 0 | $\lambda=1.0, T=2.0$ | Order A, Order B | 42, 123 | 4 |
+| **Experience Replay (60)** | Custom CNN | 60 images | None | Order A, Order B | 42, 123 | 4 |
+| **Experience Replay (120)** | Custom CNN | 120 images | None | Order A, Order B | 42, 123 | 4 |
+| **Joint Training (Upper Bound)**| Custom CNN | 0 (all data) | N/A | Order-independent | 42, 123 | 2 |
+| **Total** | | | | | | **18** |
 
 ---
 
@@ -146,8 +143,8 @@ $$\text{BWT} = \frac{1}{N - 1} \sum_{j=1}^{N - 1} (R_{N, j} - R_{j, j})$$
 ```mermaid
 flowchart TD
     P0["Phase 0: Scaffold & Plan (Frozen)"] --> P1["Phase 1: Data Audit & Splits"]
-    P1 --> P2["Phase 2: Model Design (Custom CNN & ResNet18)"]
-    P2 --> P3["Phase 3: Standard Training (Joint Oracles)"]
+    P1 --> P2["Phase 2: Custom CNN Architecture Design"]
+    P2 --> P3["Phase 3: Standard Training (Joint Upper Bound)"]
     P3 --> P4["Phase 4: Class-Incremental Learning (FT, LwF, ER-60, ER-120)"]
     P4 --> P5["Phase 5: Evaluation & Metrics Compilation"]
     P5 --> P6["Phase 6: Explainability & Analysis (Grad-CAM)"]
@@ -165,28 +162,27 @@ flowchart TD
   - [ ] Audit image resolutions, aspect ratios, corrupted files, and near-duplicates (`pHash`).
   - [ ] Implement OpenCV extreme contour cropping and skull-stripping.
   - [ ] Generate deterministic stratified train/val splits and incremental task manifests for seeds `42` and `123`.
-- [ ] **Phase 2: Model Architectures (Custom CNN & ResNet18)**
-  - [ ] Implement 4-block Custom CNN (target 1M to 3M, strictly <5M params) with GAP and expandable classifier head.
-  - [ ] Implement ResNet18 reference model with expandable classifier head.
+- [ ] **Phase 2: Custom CNN Architecture Design**
+  - [ ] Implement 4-block Custom CNN (target roughly 1M to 3M, strictly <5M params) with GAP and expandable classifier head.
   - [ ] Unit test forward pass tensor dimensions and head expansion mechanics.
-- [ ] **Phase 3: Standard Joint Training (Upper Bounds)**
+- [ ] **Phase 3: Standard Training (Joint Upper Bound)**
   - [ ] Implement core `Trainer` with early stopping, mixed precision, and metric logging.
-  - [ ] Train Joint Training upper bound oracles on all 4 classes for both Custom CNN and ResNet18 across seeds `42` and `123`.
+  - [ ] Train Joint Training upper bound oracle on all 4 classes for Custom CNN across seeds `42` and `123`.
   - [ ] (Optional) Run Optuna study for hyperparameter tuning.
 - [ ] **Phase 4: Class-Incremental Learning Implementation**
   - [ ] Implement Naive Fine-Tuning sequential runner.
   - [ ] Implement Learning without Forgetting (teacher snapshot + distillation loss).
   - [ ] Implement Experience Replay with fixed total buffers of 60 and 120 images (class-balanced random selection).
-  - [ ] Execute 32 incremental runs (4 methods $\times$ 2 models $\times$ 2 orders $\times$ 2 seeds).
+  - [ ] Execute 16 incremental runs (4 methods $\times$ 2 orders $\times$ 2 seeds) on the Custom CNN.
 - [ ] **Phase 5: Evaluation & Metrics Compilation**
   - [ ] Compute $A_{\text{avg}}$, Forgetting ($F$), $\text{BWT}$, and report Replay Memory Cost ($M$) alongside classification metrics.
+  - [ ] Profile Custom CNN efficiency: parameter count, FLOPs, model size (MB), latency.
   - [ ] Generate publication-quality comparison tables (mean $\pm$ std across seeds).
   - [ ] Generate confusion matrices and task accuracy trajectory curves.
 - [ ] **Phase 6: Explainability & Analysis**
-  - [ ] Generate Grad-CAM attention maps to visualize representation drift across tasks.
-  - [ ] Perform comparative analysis between scratch-trained Custom CNN and pretrained ResNet18.
+  - [ ] Generate Grad-CAM attention maps to visualize representation drift across incremental tasks.
 - [ ] **Phase 7: Deployment, Packaging, and Final Documentation**
-  - [ ] Export best checkpoints to optimized ONNX format.
+  - [ ] Export best Custom CNN checkpoint to optimized ONNX format.
   - [ ] Profile CPU and GPU inference latency.
   - [ ] Build and launch Gradio interactive web application with sample MRI slice viewer.
   - [ ] Compile final scientific report draft in `docs/report/`.

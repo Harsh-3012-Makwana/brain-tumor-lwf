@@ -6,9 +6,9 @@ This directory contains executable entry-point scripts organized systematically 
 
 - `01_data_audit/`: Run dataset inspection, verify image integrity, check class distributions, and run perceptual hash checks for train/test data leakage.
 - `02_preprocess/`: Execute extreme contour cropping, apply standardized resizing and normalization, and generate cached processed datasets.
-- `03_standard_training/`: Train non-incremental Joint Training upper bounds on all 4 classes for both Custom CNN and ResNet18.
+- `03_standard_training/`: Train non-incremental Joint Training upper bound on all 4 classes for the Custom CNN across seeds `42` and `123`.
 - `04_hyperparameter_tuning/`: Optional Optuna hyperparameter optimization studies for learning rate, weight decay, distillation temperature ($T$), and loss weight ($\lambda$).
-- `05_incremental_learning/`: Run sequential multi-task class-incremental experiments across Task Orders A and B and seeds (`42`, `123`) for both Custom CNN and ResNet18:
+- `05_incremental_learning/`: Run sequential multi-task class-incremental experiments on the Custom CNN across Task Orders A and B and seeds (`42`, `123`):
   - Naive Fine-Tuning (lower bound)
   - Learning without Forgetting (LwF; main method)
   - Experience Replay (fixed buffers of 60 and 120 images)

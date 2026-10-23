@@ -80,8 +80,7 @@ incremental:
     sampling_strategy: str# "class_balanced_random"
 
 model:
-  name: str               # "custom_cnn" (main model) or "resnet18" (reference model)
-  role: str               # "main_model" or "reference_model"
+  name: str               # "custom_cnn" (sole model architecture in project)
   hard_param_limit: int   # Strict upper bound (5000000; target roughly 1M to 3M)
   conv_channels: list[int]# Block channel sequence [32, 64, 128, 128]
   kernel_size: int        # Convolution kernel size (3)
