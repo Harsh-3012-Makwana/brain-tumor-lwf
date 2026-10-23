@@ -115,4 +115,19 @@ results/runs/<method>_<order>_<seed>_<timestamp>/
 | **Expandable Classification Head** | Linear head with `expand(n_new_classes)` copying previous weights bit-identically | Prevents artificial parameter perturbation of previously learned classes when introducing novel tumor categories. Verified via `torch.equal(old_w, new_w[:old_c])`. |
 | **Distillation Interface** | `forward_old_logits()` and `get_old_logits()` exposed on model | Provides clean slicing of old-class logits for LwF teacher distillation without coupling architecture code to training loops. |
 
+---
+
+## 7. Phase 3 Training Pipeline & Variant Selection Decisions
+
+| Parameter / Aspect | Frozen Specification | Justification & Implementation Details |
+|:---|:---|:---|
+| **Main-Variant Selection Rule** | Smallest variant whose mean validation Macro-F1 across seeds `[42, 123]` is within 1 percentage point ($\le 0.01$) of the top-performing variant | Follows Occam's razor: penalizes unnecessary architectural bloat and preserves edge efficiency when larger models yield marginal predictive gains. Evaluated strictly on validation data. |
+| **Selected Main Architecture** | **`large`** variant selected (`active_variant: "large"`, 2,531,396 params, 1929.55 MFLOPs) | `large` achieved **0.9212 ± 0.0277** val Macro-F1 across seeds 42 and 123, surpassing `small` (0.8902) by 3.10 pp and `medium` (0.8602) by 6.10 pp. As the only variant within 1 pp of the top score, it is selected as the primary architecture for Phase 4 continual learning. |
+| **BatchNorm Continual Policy** | Standard BatchNorm (momentum=0.1, running stats update freely across all tasks). Config flag: `bn_policy: "standard"`. | Preserves native domain normalization while tracking inter-task feature shifts. Flag `frozen_after_task1` is reserved for future ablation exploration. |
+| **Hardware Correction** | Workstation CPU is Intel Core i7-14650HX (16 cores, 24 threads) | Corrected from initial placeholder text across documentation and profiling logs. |
+| **DataLoader Multiprocessing on Windows** | Configured `num_workers: 4` in YAML, executed with `num_workers: 0` for Windows scripts | Empirical benchmark on Windows 11 showed `num_workers=0` completed epochs in 8.8s vs. 20.0s for `num_workers=4`, eliminating process spawn and pipe serialization latency. |
+| **Pluggable Loss Interface** | `execute_loss_callable` accommodates both `(logits, targets)` and `(model, images, targets)` | Allows Phase 4 LwF knowledge distillation loss to be plugged directly into `fit()` without modifying the core training loop. |
+| **Mixed Precision (AMP)** | Native `bfloat16` autocast on RTX 5060 Laptop GPU (`sm_120`) | Provides ~2x memory compression and accelerated tensor core throughput without gradient underflow issues associated with float16. |
+
+
 

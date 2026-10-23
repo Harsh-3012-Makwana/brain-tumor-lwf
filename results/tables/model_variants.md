@@ -4,6 +4,7 @@
 - **Classification Head**: 4 classes (`glioma`, `meningioma`, `notumor`, `pituitary`)
 - **Hard Parameter Cap**: 5,000,000 parameters
 - **GPU Hardware**: NVIDIA GeForce RTX 5060 Laptop GPU (Blackwell `sm_120`)
+- **CPU Hardware**: Intel Core i7-14650HX CPU
 
 | Variant | Total Params | Backbone Params | Head Params | FLOPs (M) | Size (MB) | CPU Latency (ms) | GPU Latency (ms) | Limit Check (<5M) |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|

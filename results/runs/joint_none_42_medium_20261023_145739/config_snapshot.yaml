@@ -1,0 +1,31 @@
+variant: medium
+seed: 42
+training:
+  batch_size: 64
+  num_epochs: 40
+  gradient_clip_val: 1.0
+  num_workers: 4
+  use_amp: true
+  bn_policy: standard
+  optimizer:
+    name: adamw
+    lr: 0.001
+    weight_decay: 0.0001
+    betas:
+    - 0.9
+    - 0.999
+  scheduler:
+    name: cosine
+    warmup_epochs: 2
+    min_lr: 1.0e-06
+  loss:
+    criterion: cross_entropy
+  early_stopping:
+    patience: 8
+    min_delta: 0.0005
+    monitor: val_macro_f1
+    mode: max
+  checkpointing:
+    save_best_only: true
+    monitor: val_macro_f1
+    mode: max

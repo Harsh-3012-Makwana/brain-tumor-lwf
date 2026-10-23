@@ -50,7 +50,7 @@ Three variants are defined. The active variant is configured in `configs/model/c
 
 ## 4. Empirical Benchmarking Results
 
-Measured on **NVIDIA GeForce RTX 5060 Laptop GPU** (`sm_120`, 8 GB VRAM) and **AMD Ryzen CPU** with batch size = 1 ($1 \times 3 \times 150 \times 150$), 20 warmup iterations, 50 timed iterations:
+Measured on **NVIDIA GeForce RTX 5060 Laptop GPU** (`sm_120`, 8 GB VRAM) and **Intel Core i7-14650HX CPU** with batch size = 1 ($1 \times 3 \times 150 \times 150$), 20 warmup iterations, 50 timed iterations:
 
 | Variant | Total Params | Backbone Params | Head Params | FLOPs (M) | Model Size | CPU Latency | GPU Latency | Budget (<5M) |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|

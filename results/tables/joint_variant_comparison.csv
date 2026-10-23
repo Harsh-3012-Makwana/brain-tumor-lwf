@@ -1,0 +1,4 @@
+variant,params,mflops,mean_val_macro_f1,std_val_macro_f1,mean_val_acc,std_val_acc,mean_test_macro_f1,std_test_macro_f1,mean_test_acc,std_test_acc,mean_training_time_sec,peak_gpu_mem_mb,selected
+small,241700,274.43,0.8902,0.0266,0.8887,0.028,0.8229,0.0625,0.824,0.064,99.8,572.5,NO
+medium,1036548,1077.56,0.8602,0.0006,0.8613,0.0006,0.7667,0.0257,0.771,0.0216,104.1,1106.1,NO
+large,2531396,1929.55,0.9212,0.0277,0.9214,0.0274,0.8553,0.0591,0.8566,0.0597,212.2,1338.9,YES

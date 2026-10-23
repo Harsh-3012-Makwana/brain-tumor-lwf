@@ -188,10 +188,17 @@ flowchart TD
   - [x] Expose distillation access via `forward_old_logits()` and `get_old_logits()`.
   - [x] Implement profiling utilities (parameters, FLOPs via fvcore/thop, model size, CPU/GPU latency).
   - [x] Unit test model suite (`tests/test_models.py`: 24 total project tests passing, including GPU forward+backward pass).
-- [ ] **Phase 3: Standard Training (Joint Upper Bound)**
-  - [ ] Implement core `Trainer` with early stopping, mixed precision, and metric logging.
-  - [ ] Train Joint Training upper bound oracle on all 4 classes for Custom CNN across seeds `42` and `123`.
-  - [ ] (Optional) Run Optuna study for hyperparameter tuning.
+- [x] **Phase 3: Standard Training (Joint Upper Bound) & Variant Selection**
+  - [x] Reusable `fit()` trainer with AdamW, linear warmup + cosine annealing, gradient clipping, AMP (`bfloat16`), TensorBoard, and early stopping on validation Macro-F1.
+  - [x] Comprehensive evaluation helpers in `src/evaluation/metrics/` matching scikit-learn.
+  - [x] Automated run folder manager (`results/runs/{method}_{order}_{seed}_{timestamp}/`) saving `config_snapshot.yaml`, `train_log.csv`, `metrics.json`, `best.pt`, and `env_info.txt`.
+  - [x] Trained 6 Joint Training runs (3 variants $\times$ 2 seeds `[42, 123]`) on all 4 classes:
+    - `small` (241.7k params): Mean Val Macro-F1 = **0.8902 ± 0.0266** | Mean Test Macro-F1 = 0.8229 ± 0.0625
+    - `medium` (1.04M params): Mean Val Macro-F1 = **0.8602 ± 0.0006** | Mean Test Macro-F1 = 0.7667 ± 0.0257
+    - `large` (2.53M params): Mean Val Macro-F1 = **0.9212 ± 0.0277** | Mean Test Macro-F1 = 0.8553 ± 0.0591
+  - [x] Applied frozen selection rule: **`large`** selected as the main variant (sole candidate within 1 percentage point of best validation Macro-F1; 2.53M params under 5M limit).
+  - [x] Generated training curves and normalized confusion matrix in `results/figures/`.
+  - [x] Unit test training suite (`tests/test_training.py`: 29 total project tests passing).
 - [ ] **Phase 4: Class-Incremental Learning Implementation**
   - [ ] Implement Naive Fine-Tuning sequential runner.
   - [ ] Implement Learning without Forgetting (teacher snapshot + distillation loss).

@@ -35,6 +35,23 @@ def load_yaml(file_path: Union[str, Path]) -> Dict[str, Any]:
     return data
 
 
+def save_yaml(data: Dict[str, Any], file_path: Union[str, Path]) -> Path:
+    """Save a dictionary as a YAML configuration file.
+
+    Args:
+        data: Dictionary containing configuration parameters.
+        file_path: Destination path.
+
+    Returns:
+        Resolved Path to the saved file.
+    """
+    path = Path(file_path).resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
+    return path
+
+
 def merge_configs(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
     """Recursively merge override dictionary into base dictionary.
 

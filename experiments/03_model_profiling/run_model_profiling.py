@@ -116,6 +116,7 @@ def profile_all_variants() -> List[Dict[str, Any]]:
         f.write(f"- **Evaluated Input Resolution**: `3 x 150 x 150` (batch size = 1)\n")
         f.write(f"- **Classification Head**: 4 classes (`glioma`, `meningioma`, `notumor`, `pituitary`)\n")
         f.write(f"- **Hard Parameter Cap**: 5,000,000 parameters\n")
+        f.write(f"- **CPU Hardware**: Intel Core i7-14650HX CPU\n")
         if cuda_available:
             f.write(f"- **GPU Hardware**: {torch.cuda.get_device_name(0)} (Blackwell `sm_120`)\n\n")
         else:

@@ -49,21 +49,26 @@ data:
       std: list[float]           # Channel normalization stds [0.229, 0.224, 0.225]
 
 training:
-  batch_size: int         # Mini-batch size (32)
-  num_epochs: int         # Training epochs per task (30)
+  batch_size: int         # Mini-batch size (64)
+  num_epochs: int         # Maximum training epochs per task (40)
+  gradient_clip_val: float# Max L2 gradient norm clipping (1.0)
+  num_workers: int        # DataLoader worker processes (4; fallback 0 on Windows)
+  use_amp: bool           # Mixed precision training with bfloat16/fp16 (true)
+  bn_policy: str          # BatchNorm continual policy: "standard" | "frozen_after_task1"
   optimizer:
-    name: str             # "adamw" or "sgd"
-    lr: float             # Base learning rate (0.0003)
-    weight_decay: float   # L2 penalty coefficient (0.0001)
-    betas: list[float]    # Adam momentum parameters: [0.9, 0.999]
+    name: str             # "adamw"
+    lr: float             # Base learning rate (0.001 / 1e-3)
+    weight_decay: float   # L2 weight regularization (0.0001 / 1e-4)
+    betas: list[float]    # AdamW momentum coefficients: [0.9, 0.999]
   scheduler:
-    name: str             # "cosine" or "plateau"
-    t_max: int            # Cosine cycle length (30)
-    min_lr: float         # Minimum learning rate bound (1e-6)
+    name: str             # "cosine" (Linear Warmup + Cosine Annealing)
+    warmup_epochs: int    # Initial warmup epochs (2)
+    min_lr: float         # Minimum decayed learning rate floor (1e-6)
   early_stopping:
-    patience: int         # Epoch patience before early termination (7)
-    monitor: str          # Monitored validation metric ("val_loss")
-    mode: str             # Optimization direction ("min")
+    patience: int         # Non-improving validation epochs before stopping (8)
+    min_delta: float      # Minimum metric increase to register improvement (0.0005)
+    monitor: str          # Monitored validation metric ("val_macro_f1")
+    mode: str             # Optimization direction ("max")
 
 incremental:
   strategy: str           # "finetune", "lwf", "replay", or "joint"
