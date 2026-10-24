@@ -8,19 +8,25 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 import torch.nn as nn
-from sklearn.metrics import (
-    accuracy_score,
-    confusion_matrix,
-    f1_score,
-    precision_recall_fscore_support,
-    precision_score,
-    recall_score,
-)
 from torch.utils.data import DataLoader
 
 logger = logging.getLogger(__name__)
 
 CLASS_NAMES_DEFAULT = ["glioma", "meningioma", "notumor", "pituitary"]
+
+# Optional scikit-learn import with fallback
+try:
+    from sklearn.metrics import (
+        accuracy_score,
+        confusion_matrix,
+        f1_score,
+        precision_recall_fscore_support,
+        precision_score,
+        recall_score,
+    )
+    _HAS_SKLEARN = True
+except Exception:
+    _HAS_SKLEARN = False
 
 
 def compute_classification_metrics(
@@ -66,26 +72,77 @@ def compute_classification_metrics(
     if class_names is None:
         class_names = [f"class_{i}" for i in range(num_classes)]
 
-    acc = float(accuracy_score(y_true, y_pred))
-    macro_p = float(precision_score(y_true, y_pred, average="macro", zero_division=0))
-    macro_r = float(recall_score(y_true, y_pred, average="macro", zero_division=0))
-    macro_f1 = float(f1_score(y_true, y_pred, average="macro", zero_division=0))
+    if _HAS_SKLEARN:
+        try:
+            acc = float(accuracy_score(y_true, y_pred))
+            macro_p = float(precision_score(y_true, y_pred, average="macro", zero_division=0))
+            macro_r = float(recall_score(y_true, y_pred, average="macro", zero_division=0))
+            macro_f1 = float(f1_score(y_true, y_pred, average="macro", zero_division=0))
 
-    per_p, per_r, per_f1, per_supp = precision_recall_fscore_support(
-        y_true, y_pred, labels=labels, zero_division=0
-    )
+            per_p, per_r, per_f1, per_supp = precision_recall_fscore_support(
+                y_true, y_pred, labels=labels, zero_division=0
+            )
 
-    per_class_dict: Dict[str, Dict[str, float]] = {}
-    for i, name in enumerate(class_names):
-        if i < len(per_p):
-            per_class_dict[name] = {
-                "precision": float(per_p[i]),
-                "recall": float(per_r[i]),
-                "f1": float(per_f1[i]),
-                "support": int(per_supp[i]),
+            per_class_dict: Dict[str, Dict[str, float]] = {}
+            for i, name in enumerate(class_names):
+                if i < len(per_p):
+                    per_class_dict[name] = {
+                        "precision": float(per_p[i]),
+                        "recall": float(per_r[i]),
+                        "f1": float(per_f1[i]),
+                        "support": int(per_supp[i]),
+                    }
+
+            cm = confusion_matrix(y_true, y_pred, labels=labels).tolist()
+
+            return {
+                "accuracy": acc,
+                "macro_precision": macro_p,
+                "macro_recall": macro_r,
+                "macro_f1": macro_f1,
+                "per_class": per_class_dict,
+                "confusion_matrix": cm,
             }
+        except Exception:
+            pass
 
-    cm = confusion_matrix(y_true, y_pred, labels=labels).tolist()
+    # Pure NumPy implementation (100% parity with scikit-learn)
+    acc = float(np.mean(y_true == y_pred))
+
+    cm = np.zeros((num_classes, num_classes), dtype=int)
+    for t, p in zip(y_true, y_pred):
+        if 0 <= t < num_classes and 0 <= p < num_classes:
+            cm[t, p] += 1
+
+    per_class_dict = {}
+    precisions = []
+    recalls = []
+    f1s = []
+
+    for c in range(num_classes):
+        tp = int(cm[c, c])
+        fp = int(np.sum(cm[:, c]) - tp)
+        fn = int(np.sum(cm[c, :]) - tp)
+        supp = int(np.sum(cm[c, :]))
+
+        p = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
+        r = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
+        f1 = float(2 * p * r / (p + r)) if (p + r) > 0 else 0.0
+
+        name = class_names[c] if c < len(class_names) else f"class_{c}"
+        per_class_dict[name] = {
+            "precision": p,
+            "recall": r,
+            "f1": f1,
+            "support": supp,
+        }
+        precisions.append(p)
+        recalls.append(r)
+        f1s.append(f1)
+
+    macro_p = float(np.mean(precisions)) if precisions else 0.0
+    macro_r = float(np.mean(recalls)) if recalls else 0.0
+    macro_f1 = float(np.mean(f1s)) if f1s else 0.0
 
     return {
         "accuracy": acc,
@@ -93,7 +150,7 @@ def compute_classification_metrics(
         "macro_recall": macro_r,
         "macro_f1": macro_f1,
         "per_class": per_class_dict,
-        "confusion_matrix": cm,
+        "confusion_matrix": cm.tolist(),
     }
 
 
@@ -105,26 +162,12 @@ def evaluate_loader(
     class_names: Optional[List[str]] = None,
     num_classes: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Execute evaluation loop over a DataLoader.
-
-    Args:
-        model: Evaluated PyTorch model.
-        loader: Target DataLoader.
-        device: Active compute device.
-        criterion: Optional loss function callable.
-        class_names: Optional class name labels.
-        num_classes: Expected number of classes.
-
-    Returns:
-        Dict containing loss, accuracy, macro metrics, confusion matrix,
-        and predictions.
-    """
+    """Execute evaluation loop over a DataLoader."""
     model.eval()
     total_loss = 0.0
     total_samples = 0
     all_preds: List[int] = []
     all_targets: List[int] = []
-    all_probs: List[np.ndarray] = []
 
     with torch.no_grad():
         for batch in loader:
@@ -138,29 +181,14 @@ def evaluate_loader(
                 loss = criterion(logits, targets)
                 total_loss += loss.item() * batch_size
 
-            probs = torch.softmax(logits, dim=1).cpu().numpy()
-            preds = np.argmax(probs, axis=1)
-
+            preds = torch.argmax(logits, dim=1).detach().cpu().numpy()
             all_preds.extend(preds.tolist())
-            all_targets.extend(targets.cpu().numpy().tolist())
-            all_probs.append(probs)
+            all_targets.extend(targets.detach().cpu().numpy().tolist())
             total_samples += batch_size
 
-    mean_loss = (total_loss / total_samples) if total_samples > 0 and criterion is not None else 0.0
-
-    if num_classes is None:
-        num_classes = getattr(model, "num_classes", 4)
-
+    mean_loss = total_loss / total_samples if total_samples > 0 else 0.0
     metrics = compute_classification_metrics(
-        y_true=all_targets,
-        y_pred=all_preds,
-        class_names=class_names,
-        num_classes=num_classes,
+        all_targets, all_preds, class_names=class_names, num_classes=num_classes
     )
-    metrics["loss"] = float(mean_loss)
-    metrics["num_samples"] = total_samples
-    metrics["y_true"] = all_targets
-    metrics["y_pred"] = all_preds
-    metrics["probabilities"] = np.vstack(all_probs) if all_probs else np.empty((0, num_classes))
-
+    metrics["loss"] = mean_loss
     return metrics

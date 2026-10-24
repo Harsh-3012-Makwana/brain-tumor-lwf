@@ -1,8 +1,8 @@
 # Standard Joint Training Hyperparameters
 batch_size: 64
-num_epochs: 40
+num_epochs: 30
 gradient_clip_val: 1.0
-num_workers: 4
+num_workers: 0
 use_amp: true
 
 # BatchNorm continual update policy: "standard" | "frozen_after_task1"
@@ -23,12 +23,13 @@ loss:
   criterion: "cross_entropy"
 
 early_stopping:
+  enabled: false
   patience: 8
   min_delta: 0.0005
   monitor: "val_macro_f1"
   mode: "max"
 
 checkpointing:
-  save_best_only: true
+  save_best_only: false
   monitor: "val_macro_f1"
   mode: "max"

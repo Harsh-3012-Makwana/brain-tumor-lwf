@@ -1,7 +1,7 @@
 name: custom_cnn
 type: custom
 hard_param_limit: 5000000
-active_variant: large
+active_variant: medium
 variants:
   small:
     description: Proposal baseline 4-block layout (32, 64, 128, 128)

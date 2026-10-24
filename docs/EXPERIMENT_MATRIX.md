@@ -46,26 +46,28 @@ $$\mathbf{Total = 18 \text{ runs}}$$
 
 All runs employ the **Custom CNN** (<5M params, target roughly 1M to 3M).
 
-| Run # | Run Identifier | Strategy | Task Order | Buffer ($M$) | Seed | Memory Cost (Images) |
-|:---:|:---|:---|:---:|:---:|:---:|:---:|
-| 1 | `CCNN_FT_OrderA_S42` | Naive Fine-Tuning | Order A | 0 | 42 | 0 |
-| 2 | `CCNN_FT_OrderA_S123` | Naive Fine-Tuning | Order A | 0 | 123 | 0 |
-| 3 | `CCNN_FT_OrderB_S42` | Naive Fine-Tuning | Order B | 0 | 42 | 0 |
-| 4 | `CCNN_FT_OrderB_S123` | Naive Fine-Tuning | Order B | 0 | 123 | 0 |
-| 5 | `CCNN_LwF_OrderA_S42` | Learning without Forgetting | Order A | 0 | 42 | 0 |
-| 6 | `CCNN_LwF_OrderA_S123` | Learning without Forgetting | Order A | 0 | 123 | 0 |
-| 7 | `CCNN_LwF_OrderB_S42` | Learning without Forgetting | Order B | 0 | 42 | 0 |
-| 8 | `CCNN_LwF_OrderB_S123` | Learning without Forgetting | Order B | 0 | 123 | 0 |
-| 9 | `CCNN_ER60_OrderA_S42` | Experience Replay (60) | Order A | 60 | 42 | 60 |
-| 10 | `CCNN_ER60_OrderA_S123` | Experience Replay (60) | Order A | 60 | 123 | 60 |
-| 11 | `CCNN_ER60_OrderB_S42` | Experience Replay (60) | Order B | 60 | 42 | 60 |
-| 12 | `CCNN_ER60_OrderB_S123` | Experience Replay (60) | Order B | 60 | 123 | 60 |
-| 13 | `CCNN_ER120_OrderA_S42` | Experience Replay (120) | Order A | 120 | 42 | 120 |
-| 14 | `CCNN_ER120_OrderA_S123` | Experience Replay (120) | Order A | 120 | 123 | 120 |
-| 15 | `CCNN_ER120_OrderB_S42` | Experience Replay (120) | Order B | 120 | 42 | 120 |
-| 16 | `CCNN_ER120_OrderB_S123` | Experience Replay (120) | Order B | 120 | 123 | 120 |
-| 17 | `CCNN_Joint_S42` | Joint Training | All (4 classes) | Full | 42 | 0 |
-| 18 | `CCNN_Joint_S123` | Joint Training | All (4 classes) | Full | 123 | 0 |
+| Run # | Run Identifier | Strategy | Task Order | Buffer ($M$) | Seed | Memory Cost (Images) | Status | $A_{\text{avg}}$ | Final Macro-F1 | Forgetting ($F$) |
+|:---:|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 1 | `CCNN_FT_OrderA_S42` | Naive Fine-Tuning | Order A | 0 | 42 | 0 | **COMPLETED** | 0.5698 | 0.1000 | 0.9381 |
+| 2 | `CCNN_FT_OrderA_S123` | Naive Fine-Tuning | Order A | 0 | 123 | 0 | **COMPLETED** | 0.5690 | 0.1000 | 0.9369 |
+| 3 | `CCNN_FT_OrderB_S42` | Naive Fine-Tuning | Order B | 0 | 42 | 0 | **COMPLETED** | 0.6111 | 0.1000 | 1.0000 |
+| 4 | `CCNN_FT_OrderB_S123` | Naive Fine-Tuning | Order B | 0 | 123 | 0 | **COMPLETED** | 0.6111 | 0.1000 | 1.0000 |
+| 5 | `CCNN_LwF_OrderA_S42` | Learning without Forgetting | Order A | 0 | 42 | 0 | **COMPLETED** | 0.5682 | 0.1000 | 0.9356 |
+| 6 | `CCNN_LwF_OrderA_S123` | Learning without Forgetting | Order A | 0 | 123 | 0 | **COMPLETED** | 0.5682 | 0.1000 | 0.9356 |
+| 7 | `CCNN_LwF_OrderB_S42` | Learning without Forgetting | Order B | 0 | 42 | 0 | **COMPLETED** | 0.6111 | 0.1000 | 1.0000 |
+| 8 | `CCNN_LwF_OrderB_S123` | Learning without Forgetting | Order B | 0 | 123 | 0 | **COMPLETED** | 0.6111 | 0.1000 | 1.0000 |
+| 9 | `CCNN_ER60_OrderA_S42` | Experience Replay (60) | Order A | 60 | 42 | 60 | **COMPLETED** | 0.7546 | 0.5779 | 0.3912 |
+| 10 | `CCNN_ER60_OrderA_S123` | Experience Replay (60) | Order A | 60 | 123 | 60 | **COMPLETED** | 0.7227 | 0.4962 | 0.4888 |
+| 11 | `CCNN_ER60_OrderB_S42` | Experience Replay (60) | Order B | 60 | 42 | 60 | **COMPLETED** | 0.7751 | 0.4412 | 0.6344 |
+| 12 | `CCNN_ER60_OrderB_S123` | Experience Replay (60) | Order B | 60 | 123 | 60 | **COMPLETED** | 0.7836 | 0.4578 | 0.6200 |
+| 13 | `CCNN_ER120_OrderA_S42` | Experience Replay (120) | Order A | 120 | 42 | 120 | **COMPLETED** | 0.8039 | 0.6742 | 0.2782 |
+| 14 | `CCNN_ER120_OrderA_S123` | Experience Replay (120) | Order A | 120 | 123 | 120 | **COMPLETED** | 0.7836 | 0.6447 | 0.2863 |
+| 15 | `CCNN_ER120_OrderB_S42` | Experience Replay (120) | Order B | 120 | 42 | 120 | **COMPLETED** | 0.8446 | 0.6479 | 0.4106 |
+| 16 | `CCNN_ER120_OrderB_S123` | Experience Replay (120) | Order B | 120 | 123 | 120 | **COMPLETED** | 0.8220 | 0.5568 | 0.5031 |
+| 17 | `CCNN_Joint_S42` | Joint Training | All (4 classes) | Full | 42 | 0 | **COMPLETED** | — | 0.8872 | 0.0000 |
+| 18 | `CCNN_Joint_S123` | Joint Training | All (4 classes) | Full | 123 | 0 | **COMPLETED** | — | 0.8790 | 0.0000 |
+
+*Full consolidated results published in `results/tables/incremental_results.md` and `results/tables/incremental_results.csv`.*
 
 ---
 

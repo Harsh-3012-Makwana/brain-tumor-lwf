@@ -188,27 +188,28 @@ flowchart TD
   - [x] Expose distillation access via `forward_old_logits()` and `get_old_logits()`.
   - [x] Implement profiling utilities (parameters, FLOPs via fvcore/thop, model size, CPU/GPU latency).
   - [x] Unit test model suite (`tests/test_models.py`: 24 total project tests passing, including GPU forward+backward pass).
-- [x] **Phase 3: Standard Training (Joint Upper Bound) & Variant Selection**
-  - [x] Reusable `fit()` trainer with AdamW, linear warmup + cosine annealing, gradient clipping, AMP (`bfloat16`), TensorBoard, and early stopping on validation Macro-F1.
-  - [x] Comprehensive evaluation helpers in `src/evaluation/metrics/` matching scikit-learn.
-  - [x] Automated run folder manager (`results/runs/{method}_{order}_{seed}_{timestamp}/`) saving `config_snapshot.yaml`, `train_log.csv`, `metrics.json`, `best.pt`, and `env_info.txt`.
-  - [x] Trained 6 Joint Training runs (3 variants $\times$ 2 seeds `[42, 123]`) on all 4 classes:
-    - `small` (241.7k params): Mean Val Macro-F1 = **0.8902 ± 0.0266** | Mean Test Macro-F1 = 0.8229 ± 0.0625
-    - `medium` (1.04M params): Mean Val Macro-F1 = **0.8602 ± 0.0006** | Mean Test Macro-F1 = 0.7667 ± 0.0257
-    - `large` (2.53M params): Mean Val Macro-F1 = **0.9212 ± 0.0277** | Mean Test Macro-F1 = 0.8553 ± 0.0591
-  - [x] Applied frozen selection rule: **`large`** selected as the main variant (sole candidate within 1 percentage point of best validation Macro-F1; 2.53M params under 5M limit).
-  - [x] Generated training curves and normalized confusion matrix in `results/figures/`.
-  - [x] Unit test training suite (`tests/test_training.py`: 29 total project tests passing).
-- [ ] **Phase 4: Class-Incremental Learning Implementation**
-  - [ ] Implement Naive Fine-Tuning sequential runner.
-  - [ ] Implement Learning without Forgetting (teacher snapshot + distillation loss).
-  - [ ] Implement Experience Replay with fixed total buffers of 60 and 120 images (class-balanced random selection).
-  - [ ] Execute 16 incremental runs (4 methods $\times$ 2 orders $\times$ 2 seeds) on the Custom CNN.
+- [x] **Phase 3: Standard Training (Joint Upper Bound) & Variant Selection (Updated Stage A)**
+  - [x] Reusable `fit()` trainer supporting fixed-epoch cosine decay without early stopping and dual checkpoint saving (`best.pt` and `last.pt`).
+  - [x] Re-ran 6 Joint Training runs (3 variants $\times$ 2 seeds `[42, 123]`) under fixed 30-epoch cosine annealing:
+    - `small` (241.7k params): Mean Val Macro-F1 = **0.9189 ± 0.0100** | Mean Test Macro-F1 = 0.8514 ± 0.0063
+    - `medium` (1.04M params): Mean Val Macro-F1 = **0.9313 ± 0.0093** | Mean Test Macro-F1 = 0.8831 ± 0.0057
+    - `large` (2.53M params): Mean Val Macro-F1 = **0.9388 ± 0.0101** | Mean Test Macro-F1 = 0.8955 ± 0.0010
+  - [x] Applied frozen selection rule: **`medium`** selected as the main variant (Occam's razor: smallest candidate within 1 percentage point of best score 0.9388; 0.9313 vs 0.9388 is 0.75 pp gap; 1.04M params under 5M limit).
+  - [x] Computed diagnostic on augmented vs. non-augmented test slices: aug error rate = 7.28% vs non-aug = 11.65%.
+  - [x] Determined per-task epoch budget: **`E = 30`** epochs via 3-epoch moving average analysis.
+  - [x] Generated training curves and normalized confusion matrix in `results/figures/confusion_matrix_joint_medium.png`.
+  - [x] Unit test training suite (`tests/test_training.py` and `tests/test_incremental.py`: 34 total project tests passing).
+- [x] **Phase 4: Class-Incremental Learning Implementation**
+  - [x] Implement Naive Fine-Tuning sequential runner with expanding classification head.
+  - [x] Implement Learning without Forgetting (teacher snapshot + distillation loss with $T=2.0, \lambda=1.0$).
+  - [x] Implement Experience Replay with fixed total buffers of 60 and 120 images (class-balanced random selection from train split only).
+  - [x] Execute all 16 incremental runs (4 methods $\times$ 2 orders $\times$ 2 seeds) on the Custom CNN (Medium variant, 1.04M params) with $E=30$ fixed epochs.
+  - [x] Validated continual learning sanity checks: Naive Fine-Tuning exhibits catastrophic forgetting ($F = 0.9688$), while Replay-120 mitigates forgetting ($F = 0.3696$) and achieves highest incremental accuracy ($A_{\text{avg}} = 0.8135$).
 - [ ] **Phase 5: Evaluation & Metrics Compilation**
-  - [ ] Compute $A_{\text{avg}}$, Forgetting ($F$), $\text{BWT}$, and report Replay Memory Cost ($M$) alongside classification metrics.
-  - [ ] Profile Custom CNN efficiency: parameter count, FLOPs, model size (MB), latency.
-  - [ ] Generate publication-quality comparison tables (mean $\pm$ std across seeds).
-  - [ ] Generate confusion matrices and task accuracy trajectory curves.
+  - [x] Compute $A_{\text{avg}}$, Forgetting ($F$), $\text{BWT}$, and report Replay Memory Cost ($M$) alongside classification metrics.
+  - [x] Profile Custom CNN efficiency: parameter count (1,036,548), FLOPs (1077.56 MFLOPs), model size (4.15 MB), latency.
+  - [x] Generate publication-quality comparison tables (`results/tables/incremental_results.md` and `.csv`, mean $\pm$ std across seeds).
+  - [ ] Generate confusion matrices and task accuracy trajectory curves across tasks.
 - [ ] **Phase 6: Explainability & Analysis**
   - [ ] Generate Grad-CAM attention maps to visualize representation drift across incremental tasks.
 - [ ] **Phase 7: Deployment, Packaging, and Final Documentation**

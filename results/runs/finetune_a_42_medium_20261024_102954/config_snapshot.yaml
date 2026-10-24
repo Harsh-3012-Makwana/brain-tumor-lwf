@@ -1,0 +1,11 @@
+method: finetune
+order: A
+seed: 42
+variant: medium
+epochs_per_task: 30
+device: cuda
+task_orders:
+- - 0
+  - 1
+- - 3
+- - 2

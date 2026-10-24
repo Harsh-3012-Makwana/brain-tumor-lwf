@@ -57,14 +57,16 @@ def execute_loss_callable(
     images: torch.Tensor,
     targets: torch.Tensor,
 ) -> torch.Tensor:
-    """Execute pluggable loss function accommodating either (logits, targets) or (model, images, targets)."""
+    """Execute pluggable loss function accommodating (logits, targets), (model, logits, images, targets), or (model, images, targets)."""
     try:
         sig = inspect.signature(loss_fn)
         param_count = len(sig.parameters)
     except Exception:
         param_count = 2
 
-    if param_count >= 3:
+    if param_count == 4:
+        return loss_fn(model, logits, images, targets)
+    elif param_count >= 3:
         return loss_fn(model, images, targets)
     return loss_fn(logits, targets)
 
@@ -78,8 +80,10 @@ def fit(
     loss_fn: Callable[..., torch.Tensor],
     device: torch.device,
     num_epochs: int = 40,
+    early_stopping: bool = True,
     early_stopping_patience: int = 8,
     early_stopping_min_delta: float = 0.0005,
+    restore_best: bool = True,
     gradient_clip_val: float = 1.0,
     use_amp: bool = True,
     run_context: Optional[RunContext] = None,
@@ -97,8 +101,10 @@ def fit(
         loss_fn: Loss callable (supports standard CE or LwF composite loss).
         device: Active torch.device.
         num_epochs: Maximum epochs.
+        early_stopping: Whether to terminate early when validation F1 plateaus.
         early_stopping_patience: Patience epochs without val_macro_f1 gain.
         early_stopping_min_delta: Minimum delta threshold for improvement.
+        restore_best: If True, restore best weights; if False, retain last epoch weights.
         gradient_clip_val: Max gradient norm for clipping.
         use_amp: Enable automatic mixed precision (bfloat16 if supported, else float16).
         run_context: Optional RunContext for logging to train_log.csv and TensorBoard.
@@ -106,7 +112,7 @@ def fit(
         verbose: Print progress per epoch.
 
     Returns:
-        Tuple of (best_model, best_val_metrics, training_history).
+        Tuple of (model, best_val_metrics, training_history).
     """
     model = model.to(device)
     num_classes = getattr(model, "num_classes", 4)
@@ -259,7 +265,7 @@ def fit(
                 curr_lr,
             )
 
-        # Early stopping check on validation Macro-F1
+        # Early stopping & best checkpoint tracking on validation Macro-F1
         if val_macro_f1 > (best_val_macro_f1 + early_stopping_min_delta):
             best_val_macro_f1 = val_macro_f1
             best_epoch = epoch
@@ -278,7 +284,7 @@ def fit(
                 )
         else:
             patience_counter += 1
-            if patience_counter >= early_stopping_patience:
+            if early_stopping and patience_counter >= early_stopping_patience:
                 logger.info(
                     "Early stopping triggered at epoch %d (best epoch %d with val_macro_f1=%.4f)",
                     epoch,
@@ -287,8 +293,33 @@ def fit(
                 )
                 break
 
-    # Restore optimal model weights
-    model.load_state_dict(best_weights)
-    logger.info("Restored optimal model checkpoint from epoch %d (val_macro_f1=%.4f)", best_epoch, best_val_macro_f1)
+    # Save last epoch checkpoint
+    last_val_metrics = {
+        "epoch": history[-1]["epoch"] if history else num_epochs,
+        "val_loss": history[-1]["val_loss"] if history else val_loss,
+        "val_acc": history[-1]["val_acc"] if history else val_acc,
+        "val_macro_f1": history[-1]["val_macro_f1"] if history else val_macro_f1,
+        "val_metrics": val_metrics,
+    }
+    if run_context:
+        run_context.save_checkpoint(
+            model, filename="last.pt", extra_state={"last_val_metrics": last_val_metrics}
+        )
 
+    # Restore optimal model weights if requested, else retain last-epoch weights
+    if restore_best:
+        model.load_state_dict(best_weights)
+        logger.info(
+            "Restored optimal model checkpoint from epoch %d (val_macro_f1=%.4f)",
+            best_epoch,
+            best_val_macro_f1,
+        )
+    else:
+        logger.info(
+            "Keeping last-epoch model checkpoint (epoch %d, val_macro_f1=%.4f)",
+            last_val_metrics["epoch"],
+            last_val_metrics["val_macro_f1"],
+        )
+
+    best_val_metrics["last_epoch_metrics"] = last_val_metrics
     return model, best_val_metrics, history

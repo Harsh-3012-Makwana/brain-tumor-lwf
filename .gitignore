@@ -57,6 +57,7 @@ results/checkpoints/*
 !results/checkpoints/.gitkeep
 results/logs/*
 !results/logs/.gitkeep
+results/runs/_superseded/
 results/runs/*/checkpoints/
 results/runs/*/*.pt
 results/runs/*/*.pth

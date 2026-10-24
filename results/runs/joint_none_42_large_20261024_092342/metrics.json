@@ -1,0 +1,198 @@
+{
+  "variant": "large",
+  "seed": 42,
+  "total_params": 2531396,
+  "flops": 1929553120,
+  "training_time_sec": 1209.66,
+  "peak_gpu_mem_mb": 1334.91,
+  "num_epochs_total": 30,
+  "best_epoch": 29,
+  "val_loss": 0.29867,
+  "val_accuracy": 0.9286,
+  "val_macro_f1": 0.9288,
+  "val_per_class": {
+    "glioma": {
+      "precision": 0.9752475247524752,
+      "recall": 0.9380952380952381,
+      "f1": 0.9563106796116505,
+      "support": 210
+    },
+    "meningioma": {
+      "precision": 0.867579908675799,
+      "recall": 0.9047619047619048,
+      "f1": 0.8857808857808858,
+      "support": 210
+    },
+    "notumor": {
+      "precision": 0.9354838709677419,
+      "recall": 0.9666666666666667,
+      "f1": 0.9508196721311475,
+      "support": 210
+    },
+    "pituitary": {
+      "precision": 0.9405940594059405,
+      "recall": 0.9047619047619048,
+      "f1": 0.9223300970873787,
+      "support": 210
+    }
+  },
+  "test_loss": 0.46245,
+  "test_accuracy": 0.8969,
+  "test_macro_f1": 0.8945,
+  "test_per_class": {
+    "glioma": {
+      "precision": 0.9764309764309764,
+      "recall": 0.725,
+      "f1": 0.8321377331420373,
+      "support": 400
+    },
+    "meningioma": {
+      "precision": 0.8206896551724138,
+      "recall": 0.8925,
+      "f1": 0.8550898203592814,
+      "support": 400
+    },
+    "notumor": {
+      "precision": 0.869281045751634,
+      "recall": 0.9975,
+      "f1": 0.9289871944121071,
+      "support": 400
+    },
+    "pituitary": {
+      "precision": 0.9511002444987775,
+      "recall": 0.9725,
+      "f1": 0.9616810877626699,
+      "support": 400
+    }
+  },
+  "test_confusion_matrix": [
+    [
+      290,
+      66,
+      38,
+      6
+    ],
+    [
+      7,
+      357,
+      22,
+      14
+    ],
+    [
+      0,
+      1,
+      399,
+      0
+    ],
+    [
+      0,
+      11,
+      0,
+      389
+    ]
+  ],
+  "last_epoch": 30,
+  "last_val_loss": 0.29797,
+  "last_val_accuracy": 0.9274,
+  "last_val_macro_f1": 0.9276,
+  "last_val_per_class": {
+    "glioma": {
+      "precision": 0.9800995024875622,
+      "recall": 0.9380952380952381,
+      "f1": 0.9586374695863747,
+      "support": 210
+    },
+    "meningioma": {
+      "precision": 0.8697674418604651,
+      "recall": 0.8904761904761904,
+      "f1": 0.88,
+      "support": 210
+    },
+    "notumor": {
+      "precision": 0.9269406392694064,
+      "recall": 0.9666666666666667,
+      "f1": 0.9463869463869464,
+      "support": 210
+    },
+    "pituitary": {
+      "precision": 0.9365853658536586,
+      "recall": 0.9142857142857143,
+      "f1": 0.9253012048192771,
+      "support": 210
+    }
+  },
+  "last_test_loss": 0.48337,
+  "last_test_accuracy": 0.8944,
+  "last_test_macro_f1": 0.8918,
+  "last_test_per_class": {
+    "glioma": {
+      "precision": 0.9796610169491525,
+      "recall": 0.7225,
+      "f1": 0.8316546762589928,
+      "support": 400
+    },
+    "meningioma": {
+      "precision": 0.8247663551401869,
+      "recall": 0.8825,
+      "f1": 0.8526570048309179,
+      "support": 400
+    },
+    "notumor": {
+      "precision": 0.8599137931034483,
+      "recall": 0.9975,
+      "f1": 0.9236111111111112,
+      "support": 400
+    },
+    "pituitary": {
+      "precision": 0.9443099273607748,
+      "recall": 0.975,
+      "f1": 0.959409594095941,
+      "support": 400
+    }
+  },
+  "last_test_confusion_matrix": [
+    [
+      289,
+      65,
+      40,
+      6
+    ],
+    [
+      5,
+      353,
+      25,
+      17
+    ],
+    [
+      0,
+      1,
+      399,
+      0
+    ],
+    [
+      1,
+      9,
+      0,
+      390
+    ]
+  ],
+  "diagnostic_aug": {
+    "aug_count": 103,
+    "aug_error_rate": 0.0583,
+    "aug_accuracy": 0.9417,
+    "non_aug_count": 1497,
+    "non_aug_error_rate": 0.1062,
+    "non_aug_accuracy": 0.8938,
+    "per_class_recall": {
+      "glioma": 0.725,
+      "meningioma": 0.8925,
+      "notumor": 0.9975,
+      "pituitary": 0.9725
+    }
+  },
+  "budget_E_calculation": {
+    "recommended_E": 30,
+    "max_smoothed_val_f1": 0.9282,
+    "first_epoch_within_0_5_pp": 28
+  }
+}
