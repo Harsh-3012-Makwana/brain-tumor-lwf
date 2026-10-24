@@ -71,12 +71,16 @@ training:
     mode: str             # Optimization direction ("max")
 
 incremental:
-  strategy: str           # "finetune", "lwf", "replay", or "joint"
-  active_order: str       # "order_a" or "order_b"
-  task_orders: dict       # Mapping of sequential tasks to class subsets
+  strategy: str           # "finetune", "lwf", "lwf_all", "lwf_new", "lwfplus", "replay", or "joint"
+  active_order: str       # "order_a", "order_b", or "order_c"
+  task_orders: dict       # Mapping of sequential tasks to class subsets (order_a, order_b, order_c)
   lwf:
     temperature: float    # Softmax temperature scaling T (2.0)
     lambda_distill: float # Distillation loss scaling factor lambda (1.0)
+  lwfplus:
+    lambda_kd: float      # MSE raw logit distillation scaling factor (1.0)
+    mu_feature: float     # Cosine feature distillation scaling factor (1.0)
+    freeze_blocks: list   # Conv blocks to freeze after Task 1 ([0, 1])
   replay:
     buffer_sizes: list[int]# Buffer variants: [60, 120] total images
     total_capacity: int   # Active buffer size: 60 or 120

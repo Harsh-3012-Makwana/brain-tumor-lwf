@@ -89,6 +89,7 @@ def fit(
     run_context: Optional[RunContext] = None,
     class_names: Optional[List[str]] = None,
     verbose: bool = True,
+    epoch_train_hook: Optional[Callable[[nn.Module], None]] = None,
 ) -> Tuple[nn.Module, Dict[str, Any], List[Dict[str, Any]]]:
     """Execute complete training loop with validation, early stopping, and metric logging.
 
@@ -146,6 +147,8 @@ def fit(
 
         # ------------------ 1. Training Phase ------------------
         model.train()
+        if epoch_train_hook is not None:
+            epoch_train_hook(model)
         train_loss_total = 0.0
         train_samples = 0
         train_preds: List[int] = []

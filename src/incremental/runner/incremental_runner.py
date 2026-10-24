@@ -15,21 +15,82 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from src.data.tasks.builder import get_task_datasets, TASK_ORDERS
-from src.evaluation.incremental_metrics.continual import compute_continual_metrics
+from src.evaluation.incremental_metrics.continual import (
+    compute_continual_metrics,
+    compute_restricted_old_class_metrics,
+)
 from src.evaluation.metrics.classification import compute_classification_metrics
 from src.incremental.buffers.class_balanced_buffer import ClassBalancedBuffer
 from src.incremental.buffers.replay_loader import ReplayDataLoader
-from src.incremental.strategies.losses import CrossEntropySeenLoss, LwFLoss
+from src.incremental.strategies.losses import (
+    CrossEntropySeenLoss,
+    LwFLoss,
+    LwFNewLoss,
+    LwFLLoss,
+    LwFLFLoss,
+)
 from src.incremental.teachers.manager import create_frozen_teacher
 from src.models.custom_cnn.factory import build_model
 from src.training.trainers.base_trainer import build_optimizer_and_scheduler, fit
 from src.training.trainers.run_context import RunContext
-from src.utils.paths import RUNS_DIR
+from src.utils.paths import CHECKPOINTS_DIR, RUNS_DIR
 from src.utils.seed import set_seed
 
 logger = logging.getLogger(__name__)
 
 CLASS_NAMES = ["glioma", "meningioma", "notumor", "pituitary"]
+WINNING_LWF_CONFIG = "lwflf_frz_l1"
+
+
+def get_incremental_loss_fn(
+    method: str,
+    teacher: Optional[nn.Module],
+    seen_classes: List[int],
+    num_old: int,
+    lwfplus_config: Optional[str] = None,
+) -> Any:
+    """Instantiate appropriate continual learning loss based on strategy and variant."""
+    m = method.lower()
+    if m == "lwfplus":
+        m = (lwfplus_config or WINNING_LWF_CONFIG).lower()
+
+    if m in ["finetune"]:
+        return CrossEntropySeenLoss(seen_classes=seen_classes)
+    elif m in ["lwf", "lwf_all"]:
+        return LwFLoss(
+            teacher=teacher,
+            seen_classes=seen_classes,
+            num_old_classes=num_old,
+            temperature=2.0,
+            lambda_kd=1.0,
+        )
+    elif m in ["lwf_new"]:
+        return LwFNewLoss(
+            teacher=teacher,
+            seen_classes=seen_classes,
+            num_old_classes=num_old,
+            temperature=2.0,
+            lambda_kd=1.0,
+        )
+    elif m.startswith("lwfl_"):
+        lam = 10.0 if "l10" in m else 1.0
+        return LwFLLoss(
+            teacher=teacher,
+            seen_classes=seen_classes,
+            num_old_classes=num_old,
+            lambda_kd=lam,
+        )
+    elif m.startswith("lwflf_"):
+        lam = 10.0 if "l10" in m else 1.0
+        return LwFLFLoss(
+            teacher=teacher,
+            seen_classes=seen_classes,
+            num_old_classes=num_old,
+            lambda_kd=lam,
+            mu=1.0,
+        )
+    else:
+        return CrossEntropySeenLoss(seen_classes=seen_classes)
 
 
 def evaluate_task_test_set(
@@ -79,33 +140,36 @@ def run_single_incremental_experiment(
     method: str,
     order: str,
     seed: int,
-    variant: str = "large",
-    epochs_per_task: int = 20,
+    variant: str = "medium",
+    epochs_per_task: int = 30,
     device: Optional[torch.device] = None,
     base_runs_dir: Path = RUNS_DIR,
+    lwfplus_config: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Execute a complete class-incremental learning sequence (3 tasks).
+    """Execute a complete class-incremental learning sequence.
 
     Args:
-        method: One of ['finetune', 'lwf', 'replay60', 'replay120'].
-        order: Task order sequence ('A' or 'B').
+        method: One of ['finetune', 'lwf', 'lwf_all', 'lwf_new', 'replay60', 'replay120',
+                        'lwfl_l1', 'lwfl_l10', 'lwflf_l1', 'lwflf_l10', 'lwflf_frz_l1', 'lwflf_frz_l10', 'lwfplus'].
+        order: Task order sequence ('A', 'B', or 'C').
         seed: Random seed (42 or 123).
-        variant: Architecture variant of Custom CNN (default 'large').
+        variant: Architecture variant of Custom CNN (default 'medium').
         epochs_per_task: Fixed epoch budget E per task.
         device: Active compute device (CUDA if available, else CPU).
         base_runs_dir: Root directory for saving run artifacts.
+        lwfplus_config: Specific underlying configuration string when method='lwfplus'.
 
     Returns:
         Summary metrics dictionary.
     """
-    method = method.lower()
+    method_name = method.lower()
     order = order.upper()
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     logger.info("=" * 70)
     logger.info(
         "STARTING INCREMENTAL RUN: method=%s, order=%s, seed=%d, E=%d, device=%s",
-        method.upper(),
+        method_name.upper(),
         order,
         seed,
         epochs_per_task,
@@ -119,7 +183,7 @@ def run_single_incremental_experiment(
     # 2. Initialize Run Context
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_ctx = RunContext(
-        method=method,
+        method=method_name,
         order=order,
         seed=seed,
         timestamp=f"{variant}_{timestamp}",
@@ -130,19 +194,20 @@ def run_single_incremental_experiment(
 
     # Save snapshot config
     snapshot_cfg = {
-        "method": method,
+        "method": method_name,
         "order": order,
         "seed": seed,
         "variant": variant,
         "epochs_per_task": epochs_per_task,
         "device": str(device),
         "task_orders": TASK_ORDERS[order],
+        "lwfplus_config": lwfplus_config,
     }
     run_ctx.save_config_snapshot(snapshot_cfg)
 
     # 3. Construct Task Datasets
     tasks_data = get_task_datasets(order=order, seed=seed, image_size=(150, 150))
-    num_tasks = len(tasks_data)  # 3 tasks
+    num_tasks = len(tasks_data)
 
     # 4. Initialize Model with Task 1 output dimension
     initial_num_classes = len(tasks_data[0].seen_classes)
@@ -150,9 +215,9 @@ def run_single_incremental_experiment(
 
     # 5. Initialize Buffer for Experience Replay
     replay_capacity = 0
-    if method == "replay60":
+    if method_name == "replay60":
         replay_capacity = 60
-    elif method == "replay120":
+    elif method_name == "replay120":
         replay_capacity = 120
 
     buffer: Optional[ClassBalancedBuffer] = None
@@ -188,13 +253,12 @@ def run_single_incremental_experiment(
         )
         logger.info("-" * 60)
 
-        # 7a. Expand head for Task 2 and Task 3
+        # 7a. Expand head for Task 2 and beyond
         if task_idx > 1:
             model.expand(num_new)
             logger.info("Expanded classification head by %d units -> current classes: %d", num_new, model.num_classes)
 
         # 7b. Learning Rate and Optimizer
-        # Task 1 uses 1e-3, Tasks 2 and 3 use 3e-4 as frozen in prompt
         lr = 0.001 if task_idx == 1 else 0.0003
         warmup_epochs = 2 if epochs_per_task >= 10 else 1
 
@@ -208,7 +272,6 @@ def run_single_incremental_experiment(
         )
 
         # 7c. DataLoaders
-        # Training loader on new task data
         base_train_loader = DataLoader(
             t_data.train_dataset,
             batch_size=64,
@@ -222,7 +285,6 @@ def run_single_incremental_experiment(
         else:
             train_loader = base_train_loader
 
-        # Validation loader on new classes of current task only (for monitoring only, no tuning)
         val_loader = DataLoader(
             t_data.val_dataset,
             batch_size=64,
@@ -231,39 +293,60 @@ def run_single_incremental_experiment(
             pin_memory=(device.type == "cuda"),
         )
 
-        # 7d. Loss function
-        if method == "lwf":
-            loss_fn = LwFLoss(
-                teacher=teacher,
-                seen_classes=seen_classes,
-                num_old_classes=num_old,
-                temperature=2.0,
-                lambda_kd=1.0,
-            )
-        else:
-            loss_fn = CrossEntropySeenLoss(seen_classes=seen_classes)
-
-        # 7e. Train on Task (fixed E epochs, keep last weights, no early stopping)
-        t_start = time.time()
-        model, _, task_history = fit(
-            model=model,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            optimizer=optimizer,
-            scheduler=scheduler,
-            loss_fn=loss_fn,
-            device=device,
-            num_epochs=epochs_per_task,
-            early_stopping=False,
-            restore_best=False,  # strictly retain last epoch's weights
-            gradient_clip_val=1.0,
-            use_amp=True,
-            run_context=run_ctx,
-            class_names=[CLASS_NAMES[c] for c in seen_classes],
-            verbose=True,
+        # 7d. Loss function and Freezing Hook
+        loss_fn = get_incremental_loss_fn(
+            method=method_name,
+            teacher=teacher,
+            seen_classes=seen_classes,
+            num_old=num_old,
+            lwfplus_config=lwfplus_config,
         )
-        task_time_sec = time.time() - t_start
-        total_training_time_sec += task_time_sec
+
+        active_config = (lwfplus_config or WINNING_LWF_CONFIG if method_name == "lwfplus" else method_name).lower()
+        train_hook = None
+        if task_idx > 1 and "_frz" in active_config:
+            model.freeze_blocks_1_and_2()
+            train_hook = lambda m: m.apply_frozen_blocks_eval()
+            logger.info("Variant V4: Conv blocks 1 and 2 frozen with BN in eval mode for Task %d", task_idx)
+
+        # 7e. Train on Task (or load shared Task 1 for Order C)
+        is_order_c_task1 = (order == "C" and task_idx == 1)
+        shared_task1_ckpt = CHECKPOINTS_DIR / f"shared_task1_order_c_seed{seed}.pt"
+        skipped_task1 = False
+
+        if is_order_c_task1 and shared_task1_ckpt.is_file():
+            logger.info("Order C Task 1: Loading shared checkpoint from %s", shared_task1_ckpt)
+            state_dict = torch.load(shared_task1_ckpt, map_location=device, weights_only=True)
+            model.load_state_dict(state_dict)
+            skipped_task1 = True
+            task_time_sec = 0.0
+        else:
+            t_start = time.time()
+            model, _, task_history = fit(
+                model=model,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                optimizer=optimizer,
+                scheduler=scheduler,
+                loss_fn=loss_fn,
+                device=device,
+                num_epochs=epochs_per_task,
+                early_stopping=False,
+                restore_best=False,  # strictly retain last epoch's weights
+                gradient_clip_val=1.0,
+                use_amp=True,
+                run_context=run_ctx,
+                class_names=[CLASS_NAMES[c] for c in seen_classes],
+                verbose=True,
+                epoch_train_hook=train_hook,
+            )
+            task_time_sec = time.time() - t_start
+            total_training_time_sec += task_time_sec
+
+            if is_order_c_task1 and not shared_task1_ckpt.is_file():
+                CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
+                torch.save(model.state_dict(), shared_task1_ckpt)
+                logger.info("Order C Task 1: Saved shared checkpoint to %s", shared_task1_ckpt)
 
         # Save per-task checkpoint
         task_ckpt_name = f"checkpoint_task{task_idx}.pt"
@@ -274,7 +357,7 @@ def run_single_incremental_experiment(
         )
 
         # 7f. Update teacher snapshot for LwF after task finishes
-        if method == "lwf":
+        if method_name.startswith("lwf"):
             teacher = create_frozen_teacher(model)
 
         # 7g. Update replay buffer from TRAIN split only
@@ -326,12 +409,51 @@ def run_single_incremental_experiment(
             cum_targets, cum_preds, class_names=seen_class_names, num_classes=len(seen_classes)
         )
 
+        # 7j. Diagnostic: Restricted old-class metrics on test split
+        restricted_metrics = {
+            "restricted_old_accuracy": 0.0,
+            "mean_softmax_mass_old": 1.0,
+            "mean_softmax_mass_new": 0.0,
+            "total_old_samples": 0,
+        }
+        if num_old > 0:
+            restricted_metrics = compute_restricted_old_class_metrics(
+                model=model,
+                test_loader=cum_test_loader,
+                seen_classes=seen_classes,
+                num_old_classes=num_old,
+                device=device,
+            )
+
+        # 7k. Cumulative Validation Split evaluation on all seen classes (for design-time selection)
+        cum_val_loader = DataLoader(
+            t_data.cumulative_val_dataset,
+            batch_size=64,
+            shuffle=False,
+            num_workers=0,
+            pin_memory=(device.type == "cuda"),
+        )
+        val_seen_acc, val_targets, val_preds = evaluate_task_test_set(
+            model=model,
+            test_loader=cum_val_loader,
+            seen_classes=seen_classes,
+            device=device,
+        )
+        val_seen_metrics = compute_classification_metrics(
+            val_targets, val_preds, class_names=seen_class_names, num_classes=len(seen_classes)
+        )
+
         task_summary = {
             "task_idx": task_idx,
             "seen_classes": seen_classes,
             "new_classes": new_classes,
             "test_accuracy_seen": round(overall_acc, 4),
             "test_macro_f1_seen": round(overall_metrics["macro_f1"], 4),
+            "val_accuracy_seen": round(val_seen_acc, 4),
+            "val_macro_f1_seen": round(val_seen_metrics["macro_f1"], 4),
+            "restricted_old_accuracy": restricted_metrics["restricted_old_accuracy"],
+            "mean_softmax_mass_old": restricted_metrics["mean_softmax_mass_old"],
+            "mean_softmax_mass_new": restricted_metrics["mean_softmax_mass_new"],
             "per_class_recall": {cls: overall_metrics["per_class"][cls]["recall"] for cls in seen_class_names},
             "confusion_matrix": overall_metrics["confusion_matrix"],
             "task_time_sec": round(task_time_sec, 2),
@@ -340,21 +462,30 @@ def run_single_incremental_experiment(
         per_task_summaries.append(task_summary)
 
         logger.info(
-            "TASK %d COMPLETED: Test Seen Acc: %.4f, Macro-F1: %.4f | R[%d, :%d] = %s",
+            "TASK %d COMPLETED: Test Seen Acc: %.4f, Macro-F1: %.4f | Val Seen Macro-F1: %.4f | R[%d, :%d] = %s",
             task_idx,
             overall_acc,
             overall_metrics["macro_f1"],
+            val_seen_metrics["macro_f1"],
             task_idx,
             task_idx,
             accuracy_matrix[task_idx - 1][:task_idx],
         )
+        if num_old > 0:
+            logger.info(
+                "TASK %d DIAGNOSTIC: Restricted Old Acc: %.4f, Mean Mass Old: %.4f, Mean Mass New: %.4f",
+                task_idx,
+                restricted_metrics["restricted_old_accuracy"],
+                restricted_metrics["mean_softmax_mass_old"],
+                restricted_metrics["mean_softmax_mass_new"],
+            )
 
     # 8. Compute Continual Learning Metrics across full matrix R
     continual_metrics = compute_continual_metrics(accuracy_matrix, memory_cost=replay_capacity)
 
     # Final summary dictionary
     final_metrics = {
-        "method": method,
+        "method": method_name,
         "order": order,
         "seed": seed,
         "variant": variant,
@@ -368,9 +499,14 @@ def run_single_incremental_experiment(
         "task_forgetting": continual_metrics["task_forgetting"],
         "overall_forgetting": continual_metrics["overall_forgetting"],
         "backward_transfer": continual_metrics["backward_transfer"],
-        # Final Task 3 full test metrics
+        # Final Task full test & validation metrics
         "final_accuracy": per_task_summaries[-1]["test_accuracy_seen"],
         "final_macro_f1": per_task_summaries[-1]["test_macro_f1_seen"],
+        "final_val_accuracy": per_task_summaries[-1]["val_accuracy_seen"],
+        "final_val_macro_f1": per_task_summaries[-1]["val_macro_f1_seen"],
+        "restricted_old_accuracy": per_task_summaries[-1]["restricted_old_accuracy"],
+        "mean_softmax_mass_old": per_task_summaries[-1]["mean_softmax_mass_old"],
+        "mean_softmax_mass_new": per_task_summaries[-1]["mean_softmax_mass_new"],
         "final_per_class_recall": per_task_summaries[-1]["per_class_recall"],
         "final_confusion_matrix": per_task_summaries[-1]["confusion_matrix"],
         "per_task_summaries": per_task_summaries,
@@ -382,14 +518,15 @@ def run_single_incremental_experiment(
 
     logger.info("=" * 70)
     logger.info(
-        "FINISHED INCREMENTAL RUN: %s (Order %s, Seed %d) | A_avg: %.4f, Forgetting: %.4f, BWT: %.4f, Final F1: %.4f",
-        method.upper(),
+        "FINISHED INCREMENTAL RUN: %s (Order %s, Seed %d) | A_avg: %.4f, Forgetting: %.4f, BWT: %.4f, Final Test F1: %.4f, Val F1: %.4f",
+        method_name.upper(),
         order,
         seed,
         continual_metrics["average_incremental_accuracy"],
         continual_metrics["overall_forgetting"],
         continual_metrics["backward_transfer"],
         final_metrics["final_macro_f1"],
+        final_metrics["final_val_macro_f1"],
     )
     logger.info("=" * 70)
 

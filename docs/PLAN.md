@@ -205,6 +205,16 @@ flowchart TD
   - [x] Implement Experience Replay with fixed total buffers of 60 and 120 images (class-balanced random selection from train split only).
   - [x] Execute all 16 incremental runs (4 methods $\times$ 2 orders $\times$ 2 seeds) on the Custom CNN (Medium variant, 1.04M params) with $E=30$ fixed epochs.
   - [x] Validated continual learning sanity checks: Naive Fine-Tuning exhibits catastrophic forgetting ($F = 0.9688$), while Replay-120 mitigates forgetting ($F = 0.3696$) and achieves highest incremental accuracy ($A_{\text{avg}} = 0.8135$).
+- [x] **Stage D: LwF Architectural Refinements, Order C & Diagnostic Benchmarking**
+  - [x] Implemented Order C (2 tasks: T1={glioma, meningioma}, T2={pituitary, notumor}) with bit-identical shared Task 1 starting weights.
+  - [x] Implemented restricted old-class accuracy and softmax probability mass diagnostics to isolate representation drift from output-head logit depression.
+  - [x] Executed 12 screening runs on Seed 42 across 6 candidate LwF variants (V2 `lwfL`, V3 `lwfLF`, V4 `lwfLF_frz` with $\lambda \in \{1, 10\}$) on Orders A and C.
+  - [x] Applied pre-registered frozen selection rule: `lwfLF_frz_l1` selected as `lwfPlus` with highest mean validation Macro-F1 ($0.2211$).
+  - [x] Executed full Stage D evaluation: `lwfPlus` on Orders A, B, C $\times$ Seeds `[42, 123]` (6 runs) plus complete Order C comparison suite (`finetune`, `lwf_all`, `lwf_new`, `replay60`, `replay120`, 10 runs).
+  - [x] Uncovered definitive empirical findings:
+    - Orders A & B (single-class incremental steps): Severe task-recency bias collapses old-class representation to random chance ($0.3333$ restricted acc), allocating $98\%$ softmax mass to the newest class.
+    - Order C (multi-class incremental steps): Standard LwF retains old-class feature boundaries ($85.6\%$ restricted accuracy), but CE over all seen classes drives old logits down ($0.4\%$ old softmax mass).
+    - `lwf_new` (CE over new logits only + KD on old logits) eliminates logit depression without exemplars ($47.2\%$ old mass), achieving **$0.5904$ Macro-F1** and **$0.4681$ forgetting**, surpassing `replay60` ($0.5608$ F1, $0.6094$ F) with 0 stored images.
 - [ ] **Phase 5: Evaluation & Metrics Compilation**
   - [x] Compute $A_{\text{avg}}$, Forgetting ($F$), $\text{BWT}$, and report Replay Memory Cost ($M$) alongside classification metrics.
   - [x] Profile Custom CNN efficiency: parameter count (1,036,548), FLOPs (1077.56 MFLOPs), model size (4.15 MB), latency.

@@ -93,6 +93,9 @@ incremental:
       task_1: ["notumor", "pituitary"]
       task_2: ["glioma"]
       task_3: ["meningioma"]
+    order_c:
+      task_1: ["glioma", "meningioma"]
+      task_2: ["pituitary", "notumor"]
 
   # LwF hyperparameters
   lwf:

@@ -1,0 +1,27 @@
+==================================================
+RUNTIME ENVIRONMENT & HARDWARE CONFIGURATION
+==================================================
+Timestamp          : 2026-10-24T14:22:28.682666
+Git Commit Hash    : b1c0aa1ca5786bc1cb39eb5f967125a4516f580a
+Platform / OS      : Windows-10-10.0.26200-SP0
+Python Executable  : C:\Users\Harsh\Documents\sem 1\AI lab\MRIwithLwF\.venv\Scripts\python.exe
+Python Version     : 3.11.9
+Architecture       : AMD64
+CPU Architecture   : Intel Core i7-14650HX CPU
+CUDA Available     : True
+CUDA Device Name   : NVIDIA GeForce RTX 5060 Laptop GPU
+CUDA Capability    : (12, 0)
+CUDA Version       : 12.8
+Total VRAM (MB)    : 8150.6
+
+--- Key Package Versions ---
+torch              : 2.11.0+cu128
+torchvision        : 0.26.0+cu128
+numpy              : 2.4.6
+scipy              : 1.17.1
+cv2                : 5.0.0
+albumentations     : 2.0.8
+sklearn            : 1.9.1
+matplotlib         : 3.11.2
+optuna             : 5.0.0
+==================================================

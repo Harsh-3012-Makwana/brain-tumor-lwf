@@ -71,7 +71,53 @@ All runs employ the **Custom CNN** (<5M params, target roughly 1M to 3M).
 
 ---
 
-## 4. Optional Hyperparameter Tuning & Ablations
+## 4. Stage D Experimental Matrix: LwF Architectural Refinements & Order C
+
+### 4.1 Screening Manifest (Seed 42, Orders A & C, 12 Runs)
+Evaluating 6 candidate LwF variants (V2 `lwfL`, V3 `lwfLF`, V4 `lwfLF_frz` with $\lambda \in \{1, 10\}$) on the Custom CNN Medium variant. Evaluated on the validation split of Seed 42 for design selection:
+
+| Run Identifier | Strategy / Variant | Task Order | Distillation Parameters | Frozen Blocks? | Status | Val Macro-F1 (Selection) | Selected? |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| `lwfL_l1_A` | V2: Logit MSE | Order A | $\lambda=1.0$ | No | **COMPLETED** | 0.1000 | No |
+| `lwfL_l1_C` | V2: Logit MSE | Order C | $\lambda=1.0$ | No | **COMPLETED** | 0.3382 | No |
+| `lwfL_l10_A` | V2: Logit MSE | Order A | $\lambda=10.0$ | No | **COMPLETED** | 0.1000 | No |
+| `lwfL_l10_C` | V2: Logit MSE | Order C | $\lambda=10.0$ | No | **COMPLETED** | 0.3115 | No |
+| `lwfLF_l1_A` | V3: Logit MSE + Feat Cosine | Order A | $\lambda=1.0, \mu=1.0$ | No | **COMPLETED** | 0.1000 | No |
+| `lwfLF_l1_C` | V3: Logit MSE + Feat Cosine | Order C | $\lambda=1.0, \mu=1.0$ | No | **COMPLETED** | 0.3417 | No |
+| `lwfLF_l10_A` | V3: Logit MSE + Feat Cosine | Order A | $\lambda=10.0, \mu=1.0$ | No | **COMPLETED** | 0.1000 | No |
+| `lwfLF_l10_C` | V3: Logit MSE + Feat Cosine | Order C | $\lambda=10.0, \mu=1.0$ | No | **COMPLETED** | 0.3121 | No |
+| `lwfLF_frz_l1_A` | V4: V3 + Frozen Blocks 1 & 2 | Order A | $\lambda=1.0, \mu=1.0$ | Yes (Blocks 1 & 2) | **COMPLETED** | 0.1000 | **YES (`lwfPlus`)** |
+| `lwfLF_frz_l1_C` | V4: V3 + Frozen Blocks 1 & 2 | Order C | $\lambda=1.0, \mu=1.0$ | Yes (Blocks 1 & 2) | **COMPLETED** | **0.3421** | **YES (`lwfPlus`)** |
+| `lwfLF_frz_l10_A` | V4: V3 + Frozen Blocks 1 & 2 | Order A | $\lambda=10.0, \mu=1.0$ | Yes (Blocks 1 & 2) | **COMPLETED** | 0.1000 | No |
+| `lwfLF_frz_l10_C` | V4: V3 + Frozen Blocks 1 & 2 | Order C | $\lambda=10.0, \mu=1.0$ | Yes (Blocks 1 & 2) | **COMPLETED** | 0.3140 | No |
+
+*Screening results published in `results/tables/lwf_screening.md` and `results/tables/lwf_screening.csv`.*
+
+### 4.2 Stage D Final Incremental Manifest (16 Runs)
+Evaluates `lwfPlus` (`lwfLF_frz_l1`) across Orders A, B, and C (Seeds 42, 123) and benchmark baselines on Order C:
+
+| Run Identifier | Strategy | Order | Seed | Memory Cost | Status | $A_{\text{avg}}$ | Final Macro-F1 | Forgetting ($F$) | Restricted Old Acc | Old Mass |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `lwfPlus_A_42` | lwfPlus | Order A | 42 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.5686 | 0.1000 | 0.9363 | 0.3333 | 0.0200 |
+| `lwfPlus_A_123`| lwfPlus | Order A | 123 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.5653 | 0.1000 | 0.9313 | 0.3333 | 0.0215 |
+| `lwfPlus_B_42` | lwfPlus | Order B | 42 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.6111 | 0.1000 | 1.0000 | 0.3333 | 0.0173 |
+| `lwfPlus_B_123`| lwfPlus | Order B | 123 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.6111 | 0.1000 | 1.0000 | 0.3333 | 0.0162 |
+| `lwfPlus_C_42` | lwfPlus | Order C | 42 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.6822 | 0.3387 | 0.8662 | 0.8575 | 0.0077 |
+| `lwfPlus_C_123`| lwfPlus | Order C | 123 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.6822 | 0.3423 | 0.8688 | 0.8612 | 0.0067 |
+| `finetune_C_42`| Naive Fine-Tuning | Order C | 42 | 0 images | **COMPLETED** | 0.6831 | 0.3404 | 0.8662 | 0.5787 | 0.0006 |
+| `finetune_C_123`| Naive Fine-Tuning | Order C | 123 | 0 images | **COMPLETED** | 0.6844 | 0.3393 | 0.8688 | 0.5875 | 0.0006 |
+| `lwf_all_C_42` | LwF (All CE) | Order C | 42 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.6831 | 0.3389 | 0.8662 | 0.8588 | 0.0040 |
+| `lwf_all_C_123`| LwF (All CE) | Order C | 123 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.6844 | 0.3390 | 0.8688 | 0.8538 | 0.0040 |
+| `lwf_new_C_42` | LwF (New CE only) | Order C | 42 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.7366 | **0.5932** | **0.4762** | **0.8600** | **0.4613** |
+| `lwf_new_C_123`| LwF (New CE only) | Order C | 123 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.7332 | **0.5877** | **0.4600** | **0.8538** | **0.4824** |
+| `replay60_C_42`| Replay-60 | Order C | 42 | 60 images | **COMPLETED** | 0.7556 | 0.5836 | 0.5762 | 0.7900 | 0.3062 |
+| `replay60_C_123`| Replay-60 | Order C | 123 | 60 images | **COMPLETED** | 0.7409 | 0.5380 | 0.6425 | 0.7812 | 0.2456 |
+| `replay120_C_42`| Replay-120 | Order C | 42 | 120 images | **COMPLETED** | 0.7881 | 0.6748 | 0.4462 | 0.8325 | 0.4469 |
+| `replay120_C_123`| Replay-120 | Order C | 123 | 120 images | **COMPLETED** | 0.7788 | 0.6433 | 0.4913 | 0.8087 | 0.3956 |
+
+---
+
+## 5. Optional Hyperparameter Tuning & Ablations
 
 - **Optuna Tuning (Optional)**: Optional exploration of distillation temperature $T \in [1.0, 6.0]$ and $\lambda \in [0.5, 4.0]$ on validation Macro-F1.
 - **Distillation Ablation (Optional)**: Optional sensitivity evaluation of temperature $T \in \{1.0, 2.0, 4.0, 8.0\}$ and $\lambda \in \{0.5, 1.0, 2.0, 5.0\}$ on Custom CNN, Order A, Seed 42.

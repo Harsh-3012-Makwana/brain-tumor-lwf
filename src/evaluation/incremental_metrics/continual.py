@@ -80,3 +80,89 @@ def compute_continual_metrics(
         "backward_transfer": round(bwt, 4),
         "replay_memory_cost": int(memory_cost),
     }
+
+
+def compute_restricted_old_class_metrics(
+    model: Any,
+    test_loader: Any,
+    seen_classes: List[int],
+    num_old_classes: int,
+    device: Any,
+) -> Dict[str, Any]:
+    """Compute restricted old-class accuracy and old vs new softmax probability mass.
+
+    Args:
+        model: Model with output head matching len(seen_classes).
+        test_loader: DataLoader supplying test batches with global target IDs.
+        seen_classes: Ordered list of global class IDs seen so far.
+        num_old_classes: Count of old classes (0 to num_old_classes - 1 in head).
+        device: Active torch device.
+
+    Returns:
+        Dict containing:
+            - restricted_old_accuracy: Accuracy on old-class test images when argmax
+              is strictly restricted to the old logits only.
+            - mean_softmax_mass_old: Mean softmax probability assigned to old classes
+              on old-class test images.
+            - mean_softmax_mass_new: Mean softmax probability assigned to new classes
+              on old-class test images.
+            - total_old_samples: Total number of evaluated old-class test images.
+    """
+    import torch
+
+    if num_old_classes <= 0 or num_old_classes >= len(seen_classes):
+        return {
+            "restricted_old_accuracy": 0.0,
+            "mean_softmax_mass_old": 1.0,
+            "mean_softmax_mass_new": 0.0,
+            "total_old_samples": 0,
+        }
+
+    model.eval()
+    old_global_set = set(seen_classes[:num_old_classes])
+    old_classes_arr = np.array(seen_classes[:num_old_classes])
+
+    correct_restricted = 0
+    total_old = 0
+    sum_mass_old = 0.0
+    sum_mass_new = 0.0
+
+    with torch.no_grad():
+        for batch in test_loader:
+            images = batch[0].to(device, non_blocking=True)
+            targets = batch[1].detach().cpu().numpy()
+
+            mask = np.isin(targets, list(old_global_set))
+            if not np.any(mask):
+                continue
+
+            old_targets = targets[mask]
+            old_images = images[torch.tensor(mask, device=device)]
+
+            logits = model(old_images)  # (B_old, num_seen)
+            probs = torch.softmax(logits, dim=-1)
+
+            # Softmax mass on old vs new classes
+            mass_old = probs[:, :num_old_classes].sum(dim=-1).detach().cpu().numpy()
+            mass_new = probs[:, num_old_classes:].sum(dim=-1).detach().cpu().numpy()
+
+            sum_mass_old += float(np.sum(mass_old))
+            sum_mass_new += float(np.sum(mass_new))
+
+            # Restricted argmax on old logits only
+            restricted_idx = torch.argmax(logits[:, :num_old_classes], dim=-1).detach().cpu().numpy()
+            pred_globals = old_classes_arr[restricted_idx]
+
+            correct_restricted += int(np.sum(pred_globals == old_targets))
+            total_old += len(old_targets)
+
+    acc_restricted = float(correct_restricted / total_old) if total_old > 0 else 0.0
+    mean_old_mass = float(sum_mass_old / total_old) if total_old > 0 else 0.0
+    mean_new_mass = float(sum_mass_new / total_old) if total_old > 0 else 0.0
+
+    return {
+        "restricted_old_accuracy": round(acc_restricted, 4),
+        "mean_softmax_mass_old": round(mean_old_mass, 4),
+        "mean_softmax_mass_new": round(mean_new_mass, 4),
+        "total_old_samples": int(total_old),
+    }

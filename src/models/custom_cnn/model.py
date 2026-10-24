@@ -103,3 +103,16 @@ class CustomCNN(nn.Module):
         Preserves existing class weights bit-identically while appending new output neurons.
         """
         self.head.expand(n_new_classes)
+
+    def freeze_blocks_1_and_2(self) -> None:
+        """Freeze parameters and set BatchNorm layers to eval for conv blocks 1 and 2 (Variant V4)."""
+        for block_idx in [0, 1]:
+            block = self.backbone.blocks[block_idx]
+            for param in block.parameters():
+                param.requires_grad = False
+            block.eval()
+
+    def apply_frozen_blocks_eval(self) -> None:
+        """Keep conv blocks 1 and 2 in eval mode during training so running stats do not drift."""
+        for block_idx in [0, 1]:
+            self.backbone.blocks[block_idx].eval()

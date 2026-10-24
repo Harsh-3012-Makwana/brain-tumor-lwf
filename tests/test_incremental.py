@@ -174,3 +174,124 @@ def test_finetune_and_lwf_never_receive_old_class_images_in_training_batch():
                     f"Leakage detected in Order {order} Task {t_idx}: "
                     f"target {tgt} is not in new_classes {t_data.new_classes}"
                 )
+
+
+def test_softmax_kd_shift_invariant_vs_raw_logit_mse():
+    """Verify softmax-KD is invariant to constant shift of old logits while raw MSE is not."""
+    import torch.nn.functional as F
+
+    teacher_logits = torch.randn(8, 2)
+    student_logits = torch.randn(8, 2)
+    shift = 10.0
+    shifted_student = student_logits + shift
+
+    # 1. Softmax KD with T=2.0
+    T = 2.0
+    p_t = F.softmax(teacher_logits / T, dim=1)
+    log_p_s = F.log_softmax(student_logits / T, dim=1)
+    log_p_s_shifted = F.log_softmax(shifted_student / T, dim=1)
+
+    kd_orig = F.kl_div(log_p_s, p_t, reduction="batchmean")
+    kd_shifted = F.kl_div(log_p_s_shifted, p_t, reduction="batchmean")
+
+    assert torch.allclose(kd_orig, kd_shifted, atol=1e-5), "Softmax KD should be invariant to constant logit shift!"
+
+    # 2. MSE on raw logits
+    mse_orig = F.mse_loss(student_logits, teacher_logits)
+    mse_shifted = F.mse_loss(shifted_student, teacher_logits)
+
+    assert not torch.allclose(mse_orig, mse_shifted, atol=1e-2), "MSE raw logit loss must NOT be invariant to shift!"
+
+
+def test_feature_distillation_zero_when_features_equal():
+    """Verify feature cosine distillation loss is exactly 0 when features match."""
+    import torch.nn.functional as F
+
+    features = torch.randn(16, 288)
+    cos_sim = F.cosine_similarity(features, features, dim=-1)
+    feat_loss = (1.0 - cos_sim).mean()
+
+    assert torch.allclose(feat_loss, torch.tensor(0.0), atol=1e-6)
+
+
+def test_v4_frozen_conv_blocks_and_bn_stats_bit_identical_after_step():
+    """Verify in V4 frozen conv blocks' weights AND BN running stats are bit-identical after step."""
+    import torch.nn.functional as F
+
+    model = build_model(variant="medium", num_classes=2)
+    model.expand(2)  # 2 -> 4 classes
+    model.freeze_blocks_1_and_2()
+
+    # Capture initial weights of blocks 0 and 1
+    b0_params_before = [p.clone() for p in model.backbone.blocks[0].parameters()]
+    b1_params_before = [p.clone() for p in model.backbone.blocks[1].parameters()]
+
+    # Capture initial BN running stats
+    b0_bn_mean_before = [m.running_mean.clone() for m in model.backbone.blocks[0].modules() if isinstance(m, nn.BatchNorm2d)]
+    b0_bn_var_before = [m.running_var.clone() for m in model.backbone.blocks[0].modules() if isinstance(m, nn.BatchNorm2d)]
+    b1_bn_mean_before = [m.running_mean.clone() for m in model.backbone.blocks[1].modules() if isinstance(m, nn.BatchNorm2d)]
+    b1_bn_var_before = [m.running_var.clone() for m in model.backbone.blocks[1].modules() if isinstance(m, nn.BatchNorm2d)]
+
+    head_weight_before = model.head.linear.weight.clone()
+
+    # Training step
+    model.train()
+    model.apply_frozen_blocks_eval()
+
+    optimizer = torch.optim.SGD([p for p in model.parameters() if p.requires_grad], lr=0.1)
+    x = torch.randn(8, 3, 150, 150)
+    y = torch.tensor([0, 1, 2, 3, 0, 1, 2, 3])
+
+    logits = model(x)
+    loss = F.cross_entropy(logits, y)
+    loss.backward()
+    optimizer.step()
+
+    # Verify frozen weights remain bit-identical
+    for p_before, p_after in zip(b0_params_before, model.backbone.blocks[0].parameters()):
+        assert torch.equal(p_before, p_after)
+    for p_before, p_after in zip(b1_params_before, model.backbone.blocks[1].parameters()):
+        assert torch.equal(p_before, p_after)
+
+    # Verify BN running stats remain bit-identical
+    b0_bn_mean_after = [m.running_mean for m in model.backbone.blocks[0].modules() if isinstance(m, nn.BatchNorm2d)]
+    b0_bn_var_after = [m.running_var for m in model.backbone.blocks[0].modules() if isinstance(m, nn.BatchNorm2d)]
+    for m_b, m_a in zip(b0_bn_mean_before, b0_bn_mean_after):
+        assert torch.equal(m_b, m_a)
+    for v_b, v_a in zip(b0_bn_var_before, b0_bn_var_after):
+        assert torch.equal(v_b, v_a)
+
+    # Verify unfrozen parts changed
+    assert not torch.equal(head_weight_before, model.head.linear.weight)
+
+
+def test_order_c_task_sets_and_shared_task1_bit_identical_starting_weights(tmp_path):
+    """Verify Order C definition and that shared Task 1 provides bit-identical starting weights."""
+    from src.data.tasks.builder import get_task_datasets, TASK_ORDERS
+
+    assert "C" in TASK_ORDERS
+    assert len(TASK_ORDERS["C"]) == 2
+    assert TASK_ORDERS["C"][0] == [0, 1]
+    assert TASK_ORDERS["C"][1] == [3, 2]
+
+    tasks = get_task_datasets(order="C", seed=42, image_size=(150, 150))
+    assert len(tasks) == 2
+    assert tasks[0].new_classes == [0, 1]
+    assert tasks[1].new_classes == [3, 2]
+    assert tasks[1].seen_classes == [0, 1, 3, 2]
+
+    # Shared Task 1 checkpoint test
+    model_t1 = build_model(variant="small", num_classes=2)
+    shared_ckpt_path = tmp_path / "shared_task1_order_c.pt"
+    torch.save(model_t1.state_dict(), shared_ckpt_path)
+
+    # Method 1 (e.g. finetune) loads shared checkpoint
+    m1 = build_model(variant="small", num_classes=2)
+    m1.load_state_dict(torch.load(shared_ckpt_path, weights_only=True))
+
+    # Method 2 (e.g. lwfPlus) loads shared checkpoint
+    m2 = build_model(variant="small", num_classes=2)
+    m2.load_state_dict(torch.load(shared_ckpt_path, weights_only=True))
+
+    for p1, p2 in zip(m1.parameters(), m2.parameters()):
+        assert torch.equal(p1, p2)

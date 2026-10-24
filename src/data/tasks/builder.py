@@ -30,6 +30,10 @@ TASK_ORDERS: Dict[str, List[List[int]]] = {
         [0],     # Task 2: glioma (0)
         [1],     # Task 3: meningioma (1)
     ],
+    "C": [
+        [0, 1],  # Task 1: glioma (0), meningioma (1)
+        [3, 2],  # Task 2: pituitary (3), notumor (2)
+    ],
 }
 
 
@@ -68,7 +72,7 @@ def get_task_datasets(
     """
     order = order.upper()
     if order not in TASK_ORDERS:
-        raise ValueError(f"Unknown task order: {order}. Supported orders: ['A', 'B']")
+        raise ValueError(f"Unknown task order: {order}. Supported orders: ['A', 'B', 'C']")
 
     train_val_csv = splits_dir / f"train_val_seed{seed}.csv"
     test_csv = splits_dir / "test.csv"

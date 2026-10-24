@@ -149,7 +149,33 @@ results/runs/<method>_<order>_<seed>_<timestamp>/
 | **Experience Replay ($M=60, 120$)** | Fixed total capacity $M$ split evenly across seen classes ($M/k$ per class). Populated from TRAIN split only. Union batch of 64 new + $\min(32, M)$ buffer exemplars. | Privacy-conscious benchmark evaluating exemplar retention against HIPAA/GDPR storage constraints. |
 | **Joint Upper Bound** | Reuses Stage A Joint Training runs of `medium` variant (Seeds 42 and 123). $M=0, F=0.0$. | Established performance ceiling on 4 classes simultaneously. |
 | **Continual Sanity Check Verification** | All 4 sanity rules passed: 1. Naive Fine-Tuning exhibits catastrophic forgetting ($F = 0.9688 \gg 0.30$); 2. Experience Replay drastically outperforms Fine-Tuning ($F_{\text{ER120}} = 0.3696$ vs $F_{\text{FT}} = 0.9688$, $A_{\text{avg}} = 0.8135$ vs $0.5902$); 3. Larger memory buffer ($M=120$) consistently cuts forgetting compared to $M=60$ ($0.3696$ vs $0.5336$); 4. Joint Training provides upper bound ($A_{\text{test}} = 0.8862$, Macro-F1 = $0.8831$). | Empirical validation confirming correct implementation of continual learning strategies and absence of information leakage across tasks. |
-| **LwF Behavior in Class-Incremental MRI** | LwF without memory exhibits substantial forgetting ($F = 0.9678$, nearly matching Fine-Tuning) in this setting. | Demonstrates the well-known theoretical limitation of feature distillation on disjoint class-incremental tasks with single-class additions and no exemplar replay: soft teacher targets on out-of-distribution new task images are insufficient to overcome representation drift and task-recency bias in the output head. |
+---
+
+## 9. Stage D: Improving LwF Within the No-Stored-Images Constraint
+
+### 9.1 Context and Scientific Hypotheses
+Original LwF equals Naive Fine-Tuning in Orders A and B (final accuracy 25%, forgetting 0.94-1.00).
+- **Hypothesis 1 (Logit Shift Invariance)**: Standard softmax KD over the old logits is invariant to a uniform additive scalar shift of all old logits:
+  $$\text{Softmax}\left(\frac{z_{\text{old}} + c}{T}\right) = \text{Softmax}\left(\frac{z_{\text{old}}}{T}\right)$$
+  Consequently, standard cross-entropy on new-task batches can push all old logits arbitrarily downward ($z_{\text{old}} \to -\infty$) at zero distillation cost ($\mathcal{L}_{\text{KD}} = 0$), destroying the calibration between old and new class logits and creating extreme task-recency bias.
+- **Hypothesis 2 (Single-Class Task Collapse)**: In Orders A and B, Tasks 2 and 3 introduce single classes (e.g. pituitary in T2, notumor in T3). In single-class adaptation without memory, cross-entropy loss trivially degenerates into predicting the new class exclusively.
+- **Order C Formulation**: A balanced 2-task sequence ($T_1 = \{\text{glioma}, \text{meningioma}\} \to T_2 = \{\text{pituitary}, \text{notumor}\}$) where Task 2 introduces two classes simultaneously, testing whether single-class vs. multi-class incremental steps alter distillation dynamics.
+
+### 9.2 Candidate LwF Architectural Variants (Zero Stored Images)
+1. **`lwf_all` (Baseline)**: CE over all seen logits + $\lambda \cdot \text{softmax-KD} (T=2.0)$ on old logits.
+2. **`lwf_new`**: CE over new-class logits only + $\lambda \cdot \text{softmax-KD} (T=2.0)$ on old logits.
+3. **`lwfL` (Variant V2)**: CE over all seen logits + $\lambda \cdot \text{MSE}(\text{student\_old\_logits}, \text{teacher\_old\_logits})$ on the new-task batch (teacher in eval mode, no gradients). Penalizes absolute logit depression.
+4. **`lwfLF` (Variant V3)**: Variant V2 + $\mu \cdot (1 - \text{cosine similarity})$ between student and teacher GAP pooled features on the same batch ($\mu=1.0$ fixed).
+5. **`lwfLF_frz` (Variant V4)**: Variant V3 + freeze conv blocks 1 and 2 after Task 1 (parameters `requires_grad=False` AND BatchNorm layers kept in eval mode so running stats do not drift). *Deliberate policy deviation*: this deviates from the standard-BN policy of Phase 3 to preserve early spatial edge/texture representations.
+
+### 9.3 Frozen Screening Selection Rule (Registered Prior to Execution)
+- **Selection Metric**: The configuration with the highest mean final Macro-F1 on all seen classes across the two screening runs (Order A and Order C) measured on the **VALIDATION split of seed 42** (which includes old-class validation images).
+- **Design-Time Limitation**: Old-class validation labels are used exclusively for this design-time hyperparameter choice and **never during training or per-task early stopping**. This is recognized as an explicit methodological limitation.
+- **Tie-Breaking Rule**: Ties go to the simpler architectural variant ($\text{V2} < \text{V3} < \text{V4}$), then to the smaller regularization strength ($\lambda=1 < \lambda=10$).
+- **Test Set Isolation**: The test set is evaluated and logged for all 12 screening runs for complete transparency, but is **strictly forbidden from being used for selection**.
+
+### 9.4 Shared-Task-1 Protocol on Order C
+For Order C ($T_1 = \{\text{glioma}, \text{meningioma}\}$), Task 1 is trained **ONCE per seed** (CE, 30 epochs, lr $10^{-3}$) and saved to disk. Every method evaluated on Order C (`finetune`, `lwf_all`, `lwf_new`, `replay60`, `replay120`, and `lwfPlus`) starts Task 2 from that exact bit-identical checkpoint.
 
 
 
