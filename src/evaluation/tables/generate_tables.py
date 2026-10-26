@@ -118,7 +118,14 @@ def format_val_or_dash(val: Optional[Union[float, str]], precision: int = 4) -> 
         f_val = float(val)
         return f"{f_val:.{precision}f}"
     except (ValueError, TypeError):
-        return str(val)
+        s = str(val)
+        if "±" in s:
+            parts = s.split("±")
+            return f"{parts[0].strip()} ± {parts[1].strip()}"
+        elif "\u00b1" in s:
+            parts = s.split("\u00b1")
+            return f"{parts[0].strip()} ± {parts[1].strip()}"
+        return s
 
 
 def build_incremental_tables() -> None:

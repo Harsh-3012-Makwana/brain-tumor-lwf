@@ -24,14 +24,6 @@ _workspace_cache.mkdir(parents=True, exist_ok=True)
 os.environ["GRADIO_TEMP_DIR"] = str(_workspace_cache)
 os.environ["GRADIO_EXAMPLES_CACHE"] = str(_workspace_cache / "examples")
 
-import asyncio
-import gradio.utils as _gu
-import gradio.queueing as _gq
-import gradio.routes as _grr
-
-_gu.safe_get_lock = _gq.safe_get_lock = lambda: asyncio.Lock()
-_gu.safe_get_stop_event = _grr.safe_get_stop_event = lambda: asyncio.Event()
-
 import gradio as gr
 import numpy as np
 

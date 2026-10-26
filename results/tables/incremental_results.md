@@ -8,7 +8,7 @@
 
 | Order | Method | Replay Memory | Teacher Size | Average Incremental Accuracy ($A_{\text{avg}}$) | Final Accuracy | Final Macro-F1 | Forgetting ($F$) ↓ | Old-Class Acc (Last Task) | New-Class Acc (Last Task) | Restricted Old Acc | Mean Old Mass |
 |:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **All** | **Joint Training (Upper Bound)** | 0 images (all data) | 0.00 MB | **—** | 0.8862±0.0056 | **0.8831±0.0057** | **0.0000** | n/a | n/a | n/a | n/a |
+| **All** | **Joint Training (Upper Bound)** | 0 images (all data) | 0.00 MB | **—** | 0.8862 ± 0.0056 | **0.8831 ± 0.0057** | **0.0000** | n/a | n/a | n/a | n/a |
 | **A** | **FINETUNE** | 0 images | 0.00 MB | **0.5694 ± 0.0004** | 0.2500 ± 0.0000 | 0.1000 ± 0.0000 | 0.9375 ± 0.0006 | 0.0000 ± 0.0000 | 1.0000 ± 0.0000 | 0.3333 | 0.0004 |
 | **A** | **LWF** | 0 images | 3.96 MB | **0.5682 ± 0.0000** | 0.2500 ± 0.0000 | 0.1000 ± 0.0000 | 0.9356 ± 0.0000 | 0.0000 ± 0.0000 | 1.0000 ± 0.0000 | 0.3333 | 0.0010 |
 | **A** | **LWFPLUS** | 0 images | 3.96 MB | **0.5670 ± 0.0016** | 0.2500 ± 0.0000 | 0.1000 ± 0.0000 | 0.9338 ± 0.0025 | 0.0000 ± 0.0000 | 1.0000 ± 0.0000 | 0.3333 | 0.0207 |

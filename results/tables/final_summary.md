@@ -4,7 +4,7 @@
 
 | Order | Method | Replay Memory (Images) | Teacher Model Size (MB) | $A_{\text{avg}}$ (Mean ± Std) | Final Accuracy (Mean ± Std) | Final Macro-F1 (Mean ± Std) | Forgetting ($F$) ↓ (Mean ± Std) | Old-Class Acc (Mean ± Std) | New-Class Acc (Mean ± Std) | Restricted Old Acc (Mean ± Std) | Mean Old Mass (Mean ± Std) |
 |:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **All** | **Joint Training (Upper Bound)** | 0 images (all data) | 0.00 MB | **—** | **0.8862±0.0056** | **0.8831±0.0057** | **0.0000** | n/a | n/a | n/a | n/a |
+| **All** | **Joint Training (Upper Bound)** | 0 images (all data) | 0.00 MB | **—** | **0.8862 ± 0.0056** | **0.8831 ± 0.0057** | **0.0000** | n/a | n/a | n/a | n/a |
 | **A** | **FINETUNE** | 0 images | 0.00 MB | 0.5694 ± 0.0004 | 0.2500 ± 0.0000 | 0.1000 ± 0.0000 | 0.9375 ± 0.0006 | 0.0000 ± 0.0000 | 1.0000 ± 0.0000 | 0.3333 ± 0.0000 | 0.0004 ± 0.0000 |
 | **A** | **LWF** | 0 images | 3.96 MB | 0.5682 ± 0.0000 | 0.2500 ± 0.0000 | 0.1000 ± 0.0000 | 0.9356 ± 0.0000 | 0.0000 ± 0.0000 | 1.0000 ± 0.0000 | 0.3333 ± 0.0000 | 0.0010 ± 0.0000 |
 | **A** | **REPLAY60** | 60 images | 0.00 MB | 0.7387 ± 0.0160 | 0.5703 ± 0.0372 | 0.5371 ± 0.0408 | 0.4400 ± 0.0488 | 0.4271 ± 0.0496 | 1.0000 ± 0.0000 | 0.6234 ± 0.0208 | 0.5507 ± 0.0341 |

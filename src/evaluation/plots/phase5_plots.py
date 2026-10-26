@@ -39,6 +39,7 @@ METHOD_COLORS = {
     "finetune": "#d32f2f",      # Red
     "lwf": "#f57c00",           # Orange
     "lwf_all": "#f57c00",       # Orange
+    "lwf_standard": "#f57c00",  # Orange
     "lwf_new": "#00897b",       # Teal
     "lwfplus": "#7b1fa2",       # Purple
     "replay60": "#1976d2",      # Blue
@@ -48,8 +49,9 @@ METHOD_COLORS = {
 
 METHOD_LABELS = {
     "finetune": "Naive Fine-Tuning",
-    "lwf": "LwF (Baseline)",
-    "lwf_all": "LwF (Standard / All)",
+    "lwf": "LwF (Standard)",
+    "lwf_all": "LwF (Standard)",
+    "lwf_standard": "LwF (Standard)",
     "lwf_new": "LwF (New-Class CE)",
     "lwfplus": "lwfPlus (Screened)",
     "replay60": "Replay (M=60)",
@@ -79,20 +81,30 @@ def load_all_run_metrics() -> List[Dict[str, Any]]:
     return metrics_list
 
 
+def _parse_mean_val(val: Any, default: float) -> float:
+    if val is None:
+        return default
+    s = str(val).split("±")[0].split("\u00b1")[0].strip()
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return default
+
+
 def load_joint_test_metrics() -> Dict[str, float]:
     """Load selected Medium variant Joint metrics."""
     joint_csv = TABLES_DIR / "joint_variant_comparison.csv"
-    res = {"final_acc": 0.9573, "final_macro_f1": 0.9575}
+    res = {"final_acc": 0.8862, "final_macro_f1": 0.8831}
     if joint_csv.is_file():
         try:
             with open(joint_csv, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for r in reader:
                     if r.get("selected") in ["YES", "YES (MAIN)"] and r.get("seed") == "all":
-                        res["final_acc"] = float(r.get("best_test_acc", 0.9573))
-                        res["final_macro_f1"] = float(r.get("best_test_macro_f1", 0.9575))
-        except Exception:
-            pass
+                        res["final_acc"] = _parse_mean_val(r.get("best_test_acc"), 0.8862)
+                        res["final_macro_f1"] = _parse_mean_val(r.get("best_test_macro_f1"), 0.8831)
+        except Exception as e:
+            logger.warning("Error parsing joint metrics: %s", e)
     return res
 
 
@@ -179,7 +191,7 @@ def plot_final_metrics_bars(all_metrics: List[Dict[str, Any]]) -> Path:
     plt.subplots_adjust(wspace=0.22)
 
     joint_metrics = load_joint_test_metrics()
-    target_methods = ["finetune", "lwf", "lwf_all", "lwf_new", "replay60", "replay120"]
+    target_methods = ["finetune", "lwf_standard", "lwf_new", "replay60", "replay120"]
 
     # Metrics to plot: (title, key, y_lim, joint_val)
     metric_configs = [
@@ -199,7 +211,7 @@ def plot_final_metrics_bars(all_metrics: List[Dict[str, Any]]) -> Path:
         # Grouped bar setup
         # For each order, display methods present
         x_centers = np.arange(len(orders))
-        bar_width = 0.14
+        bar_width = 0.15
         drawn_methods = set()
 
         for idx_m, method in enumerate(target_methods):
@@ -208,10 +220,8 @@ def plot_final_metrics_bars(all_metrics: List[Dict[str, Any]]) -> Path:
             for order in orders:
                 # Handle lwf naming difference across orders
                 m_search = method
-                if order in ["A", "B"] and method == "lwf_all":
-                    m_search = "lwf"
-                elif order in ["C", "D"] and method == "lwf":
-                    m_search = "lwf_all"
+                if method == "lwf_standard":
+                    m_search = "lwf" if order in ["A", "B"] else "lwf_all"
 
                 runs = [m for m in all_metrics if m.get("order") == order and m.get("method") == m_search]
                 if runs:
