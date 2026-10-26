@@ -72,5 +72,8 @@ events.out.tfevents.*
 *.ckpt
 *.onnx
 
+# Scratch directory
+scratch/
+
 # Allow keeping tracking files
 !.gitkeep

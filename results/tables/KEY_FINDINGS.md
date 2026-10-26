@@ -59,7 +59,16 @@ We do not make blanket claims that `lwf_new` "beats" Experience Replay. A side-b
 3. **Final Macro-F1**: Replay120 ($0.7289 \pm 0.0124$) > Replay60 ($0.6038 \pm 0.0100$) > `lwf_new` ($0.5639 \pm 0.0246$).
 4. **Overall Forgetting ($F$) ↓**: `lwf_new` ($0.1431 \pm 0.0093$) < Replay120 ($0.3557 \pm 0.0181$) < Replay60 ($0.5694 \pm 0.0206$).
 
-**Conclusion**:
-- In both 2-task scenarios (Orders C and D), `lwf_new` achieves outstanding retention of past classes, yielding the lowest or tied-lowest forgetting ($F = 0.4681$ in C, $F = 0.1431$ in D) while storing **zero exemplar images** (only retaining the 4.15 MB teacher model snapshot).
-- However, Experience Replay buffers ($M=60, 120$) that store actual patient images achieve higher overall accuracy and higher $A_{\text{avg}}$ across all tasks.
-- Therefore, `lwf_new` does *not* strictly beat Replay across all metrics; instead, it establishes an optimal Pareto trade-off between privacy (zero stored raw patient data) and catastrophic forgetting mitigation.
+### Disclosure D: Critical Asymmetry in `lwf_new` (Low Forgetting vs. New-Class Accuracy)
+Importantly, low forgetting in `lwf_new` must be interpreted together with new-class accuracy. Because `lwf_new` restricts cross-entropy strictly to new-class logits while penalizing old-class logit deviation via distillation, the balance between retaining old knowledge and acquiring new knowledge depends heavily on the task order:
+- **Order C**: `lwf_new` achieves **$0.3994 \pm 0.0094$** old-class accuracy and **$0.8050 \pm 0.0187$** new-class accuracy.
+  - In comparison: `lwf_all` scores $0.0000 \pm 0.0000$ old and $1.0000 \pm 0.0000$ new; `replay60` scores $0.2581 \pm 0.0318$ old and $1.0000 \pm 0.0000$ new; `replay120` scores $0.3987 \pm 0.0212$ old and $1.0000 \pm 0.0000$ new.
+- **Order D**: `lwf_new` achieves **$0.8569 \pm 0.0093$** old-class accuracy, but only **$0.3251 \pm 0.0312$** new-class accuracy.
+  - In comparison: `lwf_all` scores $0.0000 \pm 0.0000$ old and $0.8300 \pm 0.0050$ new; `replay60` scores $0.4306 \pm 0.0206$ old and $0.8206 \pm 0.0069$ new; `replay120` scores $0.6443 \pm 0.0181$ old and $0.8106 \pm 0.0069$ new.
+
+Thus, in Order D, the remarkably low forgetting ($F = 0.1431$) of `lwf_new` arises because the network remains strongly biased toward the old classes ($85.7\%$ old accuracy) and fails to adequately adapt to the new classes ($32.5\%$ new accuracy). In contrast, Replay-120 achieves balanced performance across both old and new classes in both task orders without collapsing into extreme recency or primacy bias.
+
+**Summary**:
+- `lwf_new` preserves past-task representations without storing exemplar images (retaining only the 3.96 MB teacher model snapshot), but exhibits task-order sensitivity and trade-offs between old-class retention and new-class learning.
+- Experience Replay buffers ($M=60, 120$) that store raw exemplar images achieve higher overall accuracy and higher $A_{\text{avg}}$ across all tasks.
+- Therefore, `lwf_new` does not strictly outperform Replay across all metrics, but provides an alternative approach when storing raw images is prohibited.

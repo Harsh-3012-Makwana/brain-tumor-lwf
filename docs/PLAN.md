@@ -25,8 +25,8 @@
    - Experience Replay with 120 images ($M=120$, class-balanced random selection)
    - Joint Training (upper bound oracle, all 4 classes at once)
 5. **Trade-Off & Sensitivity Analysis**: Evaluate the trade-off between retention and memory cost ($M$), distillation temperature ($T$), and task presentation sequences (Order A vs Order B). Optuna hyperparameter tuning is optional.
-6. **Clinical Explainability**: Characterize feature drift using Grad-CAM attention visualizations across incremental tasks.
-7. **Deployment & Export**: Export the optimal model to ONNX, benchmark CPU/GPU latency, and deploy an interactive Gradio diagnostic demonstration.
+6. **Explainability**: Characterize feature drift using Grad-CAM attention visualizations across incremental tasks.
+7. **Deployment & Demo**: Benchmark CPU/GPU latency, and deploy an interactive Gradio demonstration.
 
 ---
 

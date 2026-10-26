@@ -6,7 +6,7 @@ This document provides the formal architectural specification, layer-by-layer te
 
 ## 1. Architectural Philosophy and Design Principles
 
-1. **Lightweight Edge Constraint (<5M Parameters)**: Designed specifically for deployment on edge clinical devices and embedded radiological workstations. The architecture caps parameters well below 5,000,000, targeting 0.24M–2.53M across width variants.
+1. **Lightweight Parameter Constraint (<5M Parameters)**: The architecture caps parameters well below 5,000,000, targeting 0.24M–2.53M across width variants.
 2. **Global Average Pooling (GAP) Topology**: Replaces heavy dense flattening layers with adaptive global spatial pooling, drastically compressing parameter count while mitigating spatial overfitting.
 3. **Dedicated Decoupled Feature Extractor**: Decouples the 4-stage convolutional representation learner from the output classifier, enabling feature reuse and distillation loss extraction.
 4. **Expandable Classification Head**: An incremental linear head capable of dynamic expansion ($C \to C + \Delta C$) that preserves previously learned weights and biases bit-identically while integrating new class units.
@@ -58,7 +58,7 @@ Measured on **NVIDIA GeForce RTX 5060 Laptop GPU** (`sm_120`, 8 GB VRAM) and **I
 | **Medium** | 1,036,548 | 1,035,392 | 1,156 | 1077.56 M | 3.96 MB | 5.32 ± 0.59 ms | 0.60 ± 0.04 ms | **PASS** |
 | **Large** | 2,531,396 | 2,529,216 | 2,180 | 1929.55 M | 9.67 MB | 8.63 ± 0.39 ms | 1.25 ± 0.04 ms | **PASS** |
 
-*All variants execute under 1.3 ms per slice on GPU and under 9 ms per slice on CPU, making them suitable for real-time edge clinical MRI review.*
+*All variants execute under 1.3 ms per slice on GPU and under 9 ms per slice on CPU under benchmark conditions.*
 
 ---
 

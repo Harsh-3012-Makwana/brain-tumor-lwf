@@ -137,27 +137,69 @@ Models are evaluated across two distinct 3-task class-incremental presentation s
 
 ---
 
-## Comparative Results (Mean ± Std over 2 Seeds: [42, 123])
+## Comparative Results (Mean ± Std over Seeds [42, 123])
 
-*Results table placeholder — to be populated upon experimental execution in Phase 6.*
+Complete experimental evaluations across all four incremental sequences (Orders A, B, C, D) and Joint Training are documented in `results/tables/final_summary.md` and `results/tables/incremental_results.md`.
 
-| Method | Order | Avg Accuracy ($A_{\text{avg}}$) % | Forgetting ($F$) % | Backward Transfer ($\text{BWT}$) % | Memory Cost (Images) |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **Naive Fine-Tuning** | A | *TBD* | *TBD* | *TBD* | 0 |
-| **Naive Fine-Tuning** | B | *TBD* | *TBD* | *TBD* | 0 |
-| **Learning without Forgetting (LwF)** | A | *TBD* | *TBD* | *TBD* | 0 |
-| **Learning without Forgetting (LwF)** | B | *TBD* | *TBD* | *TBD* | 0 |
-| **Experience Replay (60)** | A | *TBD* | *TBD* | *TBD* | 60 |
-| **Experience Replay (60)** | B | *TBD* | *TBD* | *TBD* | 60 |
-| **Experience Replay (120)** | A | *TBD* | *TBD* | *TBD* | 120 |
-| **Experience Replay (120)** | B | *TBD* | *TBD* | *TBD* | 120 |
-| **Joint Training (Upper Bound)** | - | *TBD* | *N/A* | *N/A* | 0 |
+| Order | Method | Replay Buffer | Teacher Model | $A_{\text{avg}}$ | Final Accuracy | Final Macro-F1 | Forgetting ($F$) ↓ | Old-Class Acc | New-Class Acc |
+|:---:|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **All** | **Joint Training (Upper Bound)** | 0 images | — | **—** | **0.8862 ± 0.0056** | **0.8831 ± 0.0057** | **0.0000** | — | — |
+| **C** | **FINETUNE** | 0 images | — | 0.6865 ± 0.0016 | 0.4994 ± 0.0006 | 0.3331 ± 0.0006 | 0.9688 ± 0.0006 | 0.0000 ± 0.0000 | 1.0000 ± 0.0000 |
+| **C** | **LWF (Standard / All CE)** | 0 images | 3.96 MB | 0.6862 ± 0.0003 | 0.4994 ± 0.0006 | 0.3331 ± 0.0006 | 0.9675 ± 0.0006 | 0.0000 ± 0.0000 | 1.0000 ± 0.0000 |
+| **C** | **LWF_NEW (New-Class CE)** | 0 images | 3.96 MB | 0.7349 ± 0.0125 | 0.6022 ± 0.0141 | 0.5888 ± 0.0140 | **0.4681 ± 0.0094** | 0.3994 ± 0.0094 | 0.8050 ± 0.0187 |
+| **C** | **REPLAY60** | 60 images | — | 0.7584 ± 0.0084 | 0.6288 ± 0.0162 | 0.5739 ± 0.0210 | 0.6075 ± 0.0318 | 0.2581 ± 0.0318 | 1.0000 ± 0.0000 |
+| **C** | **REPLAY120** | 120 images | — | 0.7834 ± 0.0075 | 0.6993 ± 0.0106 | 0.6720 ± 0.0135 | 0.4688 ± 0.0212 | 0.3987 ± 0.0212 | 1.0000 ± 0.0000 |
+| **D** | **FINETUNE** | 0 images | — | 0.6980 ± 0.0028 | 0.4144 ± 0.0025 | 0.2930 ± 0.0026 | 0.9988 ± 0.0013 | 0.0000 ± 0.0000 | 0.8288 ± 0.0050 |
+| **D** | **LWF (Standard / All CE)** | 0 images | 3.96 MB | 0.6977 ± 0.0022 | 0.4150 ± 0.0025 | 0.2933 ± 0.0028 | 0.9969 ± 0.0006 | 0.0000 ± 0.0000 | 0.8300 ± 0.0050 |
+| **D** | **LWF_NEW (New-Class CE)** | 0 images | 3.96 MB | 0.7601 ± 0.0044 | 0.5912 ± 0.0106 | 0.5639 ± 0.0246 | **0.1431 ± 0.0093** | 0.8569 ± 0.0093 | 0.3251 ± 0.0312 |
+| **D** | **REPLAY60** | 60 images | — | 0.7788 ± 0.0000 | 0.6256 ± 0.0069 | 0.6038 ± 0.0100 | 0.5694 ± 0.0206 | 0.4306 ± 0.0206 | 0.8206 ± 0.0069 |
+| **D** | **REPLAY120** | 120 images | — | 0.8172 ± 0.0019 | 0.7275 ± 0.0056 | 0.7289 ± 0.0124 | 0.3557 ± 0.0181 | 0.6443 ± 0.0181 | 0.8106 ± 0.0069 |
 
-### Custom CNN Architectural Efficiency Profile
-- **Parameter Count**: <5,000,000 (Target: ~1M to 3M)
-- **FLOPs (MACs)**: *TBD at 224x224 input*
-- **Model Size (Disk Footprint)**: *TBD (MB)*
-- **Inference Latency**: *TBD (CPU & GPU ms/slice)*
+### Custom CNN Architectural Efficiency Profile (Medium Variant)
+- **Parameter Count**: 1,036,548 (<5,000,000 constraint)
+- **FLOPs (Input: 3 × 150 × 150)**: 1,077.56 MFLOPs (1.08 GFLOPs)
+- **Disk Footprint (Checkpoint)**: 3.96 MB
+- **Inference Latency (GPU, Batch=1)**: 0.60 ± 0.04 ms (RTX 5060 Laptop GPU)
+- **Inference Latency (CPU, Batch=1)**: 5.32 ± 0.59 ms (Intel Core i7-14650HX)
+- **Benchmark Environment**: PyTorch 2.11.0+cu128, CUDA 12.8, ~24.8 GB RAM
+
+---
+
+## Interactive Demonstration (Gradio App)
+
+An interactive web application is provided in `app/app.py` for evaluating trained checkpoints, visualizing class probability distributions, and inspecting Grad-CAM spatial attention maps.
+
+### Run the Demo
+
+In Windows PowerShell:
+```powershell
+# 1. Activate the Python virtual environment
+.venv\Scripts\Activate.ps1
+
+# 2. Launch the Gradio application
+python app\app.py
+```
+
+Open your web browser and navigate to:
+```
+http://127.0.0.1:7860
+```
+
+> ⚠️ **DISCLAIMER**: The application is an experimental research prototype intended solely for continual learning algorithmic evaluation. It is **not a medical device and is not intended for clinical diagnosis or radiological decision-making.**
+
+### What to Expect
+
+1. **Model Selection**: Choose from 11 evaluated checkpoints across Joint Training and incremental orders (all seed 42):
+   - Joint Training (Upper Bound Oracle)
+   - Order C: After Task 1 (`glioma`, `meningioma`), Fine-Tuning Final, Standard LwF Final, New-Class CE LwF Final, Experience Replay ($M=120$) Final
+   - Order D: After Task 1 (`notumor`, `pituitary`), Fine-Tuning Final, Standard LwF Final, New-Class CE LwF Final, Experience Replay ($M=120$) Final
+2. **Model Metadata**: Inspect parameter count (1,036,548 params for medium variant; 1,035,970 for 2-class Task 1), known classes, and memory footprint (0 images vs. 120 images vs. 3.96 MB teacher copy).
+3. **Image Input**: Drag-and-drop an MRI slice or click any of the 8 built-in deterministic test set examples (2 slices per diagnostic class from the unaugmented test split).
+4. **Diagnostic Outputs**:
+   - **Standardized Preprocessed Input**: The contour-cropped intracranial tissue slice ($150 \times 150$) fed into the model.
+   - **Softmax Class Probabilities**: Confidence scores strictly over known classes for that checkpoint.
+   - **Grad-CAM Attention Map**: Spatial activation overlay from the 4th convolutional block blended with the preprocessed slice.
+   - **Prediction Banner**: Predicted class, confidence percentage, and an explicit uncertainty note if top-1 confidence is below 60%.
 
 ---
 
