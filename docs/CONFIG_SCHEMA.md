@@ -72,8 +72,8 @@ training:
 
 incremental:
   strategy: str           # "finetune", "lwf", "lwf_all", "lwf_new", "lwfplus", "replay", or "joint"
-  active_order: str       # "order_a", "order_b", or "order_c"
-  task_orders: dict       # Mapping of sequential tasks to class subsets (order_a, order_b, order_c)
+  active_order: str       # "order_a", "order_b", "order_c", or "order_d"
+  task_orders: dict       # Mapping of sequential tasks to class subsets (order_a, order_b, order_c, order_d)
   lwf:
     temperature: float    # Softmax temperature scaling T (2.0)
     lambda_distill: float # Distillation loss scaling factor lambda (1.0)

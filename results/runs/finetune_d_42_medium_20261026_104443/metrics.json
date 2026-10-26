@@ -1,0 +1,163 @@
+{
+  "method": "finetune",
+  "order": "D",
+  "seed": 42,
+  "variant": "medium",
+  "epochs_per_task": 30,
+  "total_training_time_sec": 2454.92,
+  "replay_memory_cost": 0,
+  "accuracy_matrix": [
+    [
+      1.0,
+      null
+    ],
+    [
+      0.0,
+      0.85
+    ]
+  ],
+  "task_average_accuracies": [
+    1.0,
+    0.425
+  ],
+  "average_incremental_accuracy": 0.7125,
+  "task_forgetting": [
+    1.0
+  ],
+  "overall_forgetting": 1.0,
+  "backward_transfer": -1.0,
+  "final_accuracy": 0.425,
+  "final_macro_f1": 0.2932,
+  "final_val_accuracy": 0.4774,
+  "final_val_macro_f1": 0.3321,
+  "restricted_old_accuracy": 0.5225,
+  "mean_softmax_mass_old": 0.0016,
+  "mean_softmax_mass_new": 0.9984,
+  "final_per_class_recall": {
+    "notumor": 0.7475,
+    "pituitary": 0.9525,
+    "glioma": 0.0,
+    "meningioma": 0.0
+  },
+  "final_confusion_matrix": [
+    [
+      299,
+      101,
+      0,
+      0
+    ],
+    [
+      19,
+      381,
+      0,
+      0
+    ],
+    [
+      126,
+      274,
+      0,
+      0
+    ],
+    [
+      55,
+      345,
+      0,
+      0
+    ]
+  ],
+  "per_task_summaries": [
+    {
+      "task_idx": 1,
+      "seen_classes": [
+        2,
+        3
+      ],
+      "new_classes": [
+        2,
+        3
+      ],
+      "test_accuracy_seen": 1.0,
+      "test_macro_f1_seen": 0.0,
+      "val_accuracy_seen": 0.9738,
+      "val_macro_f1_seen": 0.0,
+      "restricted_old_accuracy": 0.0,
+      "mean_softmax_mass_old": 1.0,
+      "mean_softmax_mass_new": 0.0,
+      "per_class_recall": {
+        "notumor": 0.0,
+        "pituitary": 0.0
+      },
+      "confusion_matrix": [
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "task_time_sec": 1505.35,
+      "accuracy_matrix_row": [
+        1.0
+      ]
+    },
+    {
+      "task_idx": 2,
+      "seen_classes": [
+        2,
+        3,
+        0,
+        1
+      ],
+      "new_classes": [
+        0,
+        1
+      ],
+      "test_accuracy_seen": 0.425,
+      "test_macro_f1_seen": 0.2932,
+      "val_accuracy_seen": 0.4774,
+      "val_macro_f1_seen": 0.3321,
+      "restricted_old_accuracy": 0.5225,
+      "mean_softmax_mass_old": 0.0016,
+      "mean_softmax_mass_new": 0.9984,
+      "per_class_recall": {
+        "notumor": 0.7475,
+        "pituitary": 0.9525,
+        "glioma": 0.0,
+        "meningioma": 0.0
+      },
+      "confusion_matrix": [
+        [
+          299,
+          101,
+          0,
+          0
+        ],
+        [
+          19,
+          381,
+          0,
+          0
+        ],
+        [
+          126,
+          274,
+          0,
+          0
+        ],
+        [
+          55,
+          345,
+          0,
+          0
+        ]
+      ],
+      "task_time_sec": 949.57,
+      "accuracy_matrix_row": [
+        0.0,
+        0.85
+      ]
+    }
+  ]
+}

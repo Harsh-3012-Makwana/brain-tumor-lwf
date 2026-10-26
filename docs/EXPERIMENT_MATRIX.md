@@ -117,7 +117,26 @@ Evaluates `lwfPlus` (`lwfLF_frz_l1`) across Orders A, B, and C (Seeds 42, 123) a
 
 ---
 
-## 5. Optional Hyperparameter Tuning & Ablations
+## 5. Stage E Experimental Matrix: Order D (10 Runs)
+
+Order D: Control-first 2-task split ($T_1 = \{\text{notumor}, \text{pituitary}\} \to T_2 = \{\text{glioma}, \text{meningioma}\}$). Task 1 trained once per seed and shared by all methods.
+
+| Run Identifier | Strategy | Order | Seed | Memory Cost | Status | $A_{\text{avg}}$ | Final Macro-F1 | Forgetting ($F$) | Restricted Old Acc | Old Mass |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| `finetune_D_42` | Naive Fine-Tuning | Order D | 42 | 0 images | **COMPLETED** | 0.7125 | 0.2932 | 1.0000 | 0.5225 | 0.0016 |
+| `finetune_D_123`| Naive Fine-Tuning | Order D | 123 | 0 images | **COMPLETED** | 0.7128 | 0.2952 | 1.0000 | 0.5100 | 0.0015 |
+| `lwf_all_D_42` | LwF (Standard / All CE) | Order D | 42 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.7063 | 0.2852 | 1.0000 | 0.9988 | 0.0059 |
+| `lwf_all_D_123`| LwF (Standard / All CE) | Order D | 123 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.7087 | 0.2888 | 1.0000 | 0.9988 | 0.0073 |
+| `lwf_new_D_42` | LwF (New CE only) | Order D | 42 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.7853 | 0.5394 | 0.1525 | 0.9988 | 0.7837 |
+| `lwf_new_D_123`| LwF (New CE only) | Order D | 123 | 0 images (4.15 MB teacher) | **COMPLETED** | 0.8056 | 0.5885 | 0.1338 | 0.9988 | 0.7739 |
+| `replay60_D_42`| Replay-60 | Order D | 42 | 60 images | **COMPLETED** | 0.8059 | 0.5939 | 0.5900 | 0.9663 | 0.4186 |
+| `replay60_D_123`| Replay-60 | Order D | 123 | 60 images | **COMPLETED** | 0.8196 | 0.6138 | 0.5488 | 0.9712 | 0.4529 |
+| `replay120_D_42`| Replay-120 | Order D | 42 | 120 images | **COMPLETED** | 0.8575 | 0.7165 | 0.3738 | 0.9912 | 0.6019 |
+| `replay120_D_123`| Replay-120 | Order D | 123 | 120 images | **COMPLETED** | 0.8700 | 0.7414 | 0.3375 | 0.9988 | 0.6252 |
+
+---
+
+## 6. Optional Hyperparameter Tuning & Ablations
 
 - **Optuna Tuning (Optional)**: Optional exploration of distillation temperature $T \in [1.0, 6.0]$ and $\lambda \in [0.5, 4.0]$ on validation Macro-F1.
 - **Distillation Ablation (Optional)**: Optional sensitivity evaluation of temperature $T \in \{1.0, 2.0, 4.0, 8.0\}$ and $\lambda \in \{0.5, 1.0, 2.0, 5.0\}$ on Custom CNN, Order A, Seed 42.

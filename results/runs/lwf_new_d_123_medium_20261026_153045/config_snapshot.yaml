@@ -1,0 +1,12 @@
+method: lwf_new
+order: D
+seed: 123
+variant: medium
+epochs_per_task: 30
+device: cuda
+task_orders:
+- - 2
+  - 3
+- - 0
+  - 1
+lwfplus_config: null

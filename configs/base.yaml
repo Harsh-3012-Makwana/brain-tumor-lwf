@@ -96,6 +96,9 @@ incremental:
     order_c:
       task_1: ["glioma", "meningioma"]
       task_2: ["pituitary", "notumor"]
+    order_d:
+      task_1: ["notumor", "pituitary"]
+      task_2: ["glioma", "meningioma"]
 
   # LwF hyperparameters
   lwf:
@@ -113,7 +116,7 @@ incremental:
 model:
   name: "custom_cnn"
   hard_param_limit: 5000000 # Under 5M parameters
-  active_variant: "small" # "small" (~0.24M), "medium" (~1.04M), "large" (~2.53M)
+  active_variant: "medium" # "small" (~0.24M), "medium" (~1.04M), "large" (~2.53M)
   head_pooling: "global_avg"
 
 # Evaluation and tracking

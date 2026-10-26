@@ -193,5 +193,8 @@
         0.985
       ]
     }
-  ]
+  ],
+  "restricted_old_accuracy": 0.85,
+  "mean_softmax_mass_old": 0.3633,
+  "mean_softmax_mass_new": 0.6367
 }

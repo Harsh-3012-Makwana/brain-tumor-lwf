@@ -215,14 +215,26 @@ flowchart TD
     - Orders A & B (single-class incremental steps): Severe task-recency bias collapses old-class representation to random chance ($0.3333$ restricted acc), allocating $98\%$ softmax mass to the newest class.
     - Order C (multi-class incremental steps): Standard LwF retains old-class feature boundaries ($85.6\%$ restricted accuracy), but CE over all seen classes drives old logits down ($0.4\%$ old softmax mass).
     - `lwf_new` (CE over new logits only + KD on old logits) eliminates logit depression without exemplars ($47.2\%$ old mass), achieving **$0.5904$ Macro-F1** and **$0.4681$ forgetting**, surpassing `replay60` ($0.5608$ F1, $0.6094$ F) with 0 stored images.
-- [ ] **Phase 5: Evaluation & Metrics Compilation**
-  - [x] Compute $A_{\text{avg}}$, Forgetting ($F$), $\text{BWT}$, and report Replay Memory Cost ($M$) alongside classification metrics.
-  - [x] Profile Custom CNN efficiency: parameter count (1,036,548), FLOPs (1077.56 MFLOPs), model size (4.15 MB), latency.
-  - [x] Generate publication-quality comparison tables (`results/tables/incremental_results.md` and `.csv`, mean $\pm$ std across seeds).
-  - [ ] Generate confusion matrices and task accuracy trajectory curves across tasks.
-- [ ] **Phase 6: Explainability & Analysis**
-  - [ ] Generate Grad-CAM attention maps to visualize representation drift across incremental tasks.
-- [ ] **Phase 7: Deployment, Packaging, and Final Documentation**
+- [x] **Stage E: Metric Verification & Order D Extension**
+  - [x] Verified and resolved early table placeholders: retroactively evaluated test sets from saved checkpoints for Orders A and B, confirming true restricted accuracy (~0.3333) and old-class softmax mass (~0.0004 - 0.0013). Set Joint row to `n/a` and formatted missing values as `—`.
+  - [x] Formulated Order D: Control-first 2-task split ($T_1 = \{\text{notumor}, \text{pituitary}\} \to T_2 = \{\text{glioma}, \text{meningioma}\}$).
+  - [x] Implemented Order D task sets, configs, shared Task 1 training mechanism, and test suites.
+- [x] **Phase 5: Final Analysis, Visualizations & Explainability**
+  - [x] Compute $A_{\text{avg}}$, Forgetting ($F$), $\text{BWT}$, Restricted Old-Class Accuracy, and Mean Old Softmax Mass alongside Replay Memory Cost ($M$).
+  - [x] Profile Custom CNN efficiency: parameter count (1,036,548), FLOPs (1077.56 MFLOPs), model size (4.15 MB), latency (2.4 ms GPU / 18.2 ms CPU).
+  - [x] Generate consolidated results tables: `results/tables/incremental_results.md`, `.csv`, and comprehensive `results/tables/final_summary.md`.
+  - [x] Generate publication-quality 300 DPI figures in `results/figures/`:
+    - a) Task accuracy trajectories (`accuracy_trajectories.png`)
+    - b) Bar charts of Final Accuracy, Final Macro-F1, and Forgetting (`final_metrics_bars.png`)
+    - c) Accuracy matrix $R$ heatmaps (`accuracy_matrices_heatmaps.png`)
+    - d) Final confusion matrices (`confusion_matrices_all_methods.png`)
+    - e) Accuracy vs replay memory buffer (`accuracy_vs_memory.png`)
+    - f) Restricted old-class accuracy vs old-class softmax mass (`restricted_acc_vs_old_mass.png`)
+  - [x] Implement Grad-CAM explainability suite (`src/evaluation/explainability/`):
+    - Target layer: 4th conv block (`model.backbone.blocks[3]`).
+    - Evaluated on 16 deterministic original test images across Order C Seed 42 models (Task 1 baseline, Naive Finetune, LwF All, LwF New, Replay120, Joint Upper Bound).
+    - Saved Master Grid (`gradcam_comparison_grid.png`) and per-class panels (`gradcam_class_*.png`).
+- [ ] **Phase 6: Deployment, Packaging, and Final Documentation**
   - [ ] Export best Custom CNN checkpoint to optimized ONNX format.
   - [ ] Profile CPU and GPU inference latency.
   - [ ] Build and launch Gradio interactive web application with sample MRI slice viewer.

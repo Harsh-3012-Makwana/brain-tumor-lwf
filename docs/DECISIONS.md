@@ -177,6 +177,62 @@ Original LwF equals Naive Fine-Tuning in Orders A and B (final accuracy 25%, for
 ### 9.4 Shared-Task-1 Protocol on Order C
 For Order C ($T_1 = \{\text{glioma}, \text{meningioma}\}$), Task 1 is trained **ONCE per seed** (CE, 30 epochs, lr $10^{-3}$) and saved to disk. Every method evaluated on Order C (`finetune`, `lwf_all`, `lwf_new`, `replay60`, `replay120`, and `lwfPlus`) starts Task 2 from that exact bit-identical checkpoint.
 
+---
+
+## 10. Stage E and Phase 5: Metric Clean-Up, Order D, Final Analysis & Explainability
+
+### 10.1 Diagnostic Metric Verification and Placeholder Resolution (Stage E1)
+- **Initial Table Discrepancy**: In earlier Stage D summaries, Order A and B rows for `finetune` and baseline `lwf` reported `Restricted Old Acc` and `Mean Old Mass` as exactly `0.0000`, while the `Joint` row displayed `1.0000`.
+- **Root-Cause Verification**:
+  1. The restricted old-class accuracy diagnostic was designed in Stage D, whereas Phase 4 runs were executed prior to its introduction. The table generator defaulted missing dictionary keys via `.get("restricted_old_accuracy", 0.0)`, falsely printing `0.0000`.
+  2. The `Joint` row contained hardcoded `1.0000` values, which was an artificial placeholder since Joint Training learns all 4 classes simultaneously and has no concept of "old" vs. "new" classes.
+- **Resolution**:
+  1. Physical checkpoints (`checkpoint_task3.pt`) were confirmed to exist on disk for all 16 Phase 4 runs.
+  2. A retroactive evaluation script was executed across all saved checkpoints on the test split, computing true measured values and updating all `metrics.json` files:
+     - `finetune` (Orders A & B): `restricted_old_acc = 0.3333 - 0.3342`, `mean_softmax_mass_old = 0.0004 - 0.0005`, `new_mass = 0.9996`.
+     - `lwf` (Orders A & B): `restricted_old_acc = 0.3333`, `mean_softmax_mass_old = 0.0010 - 0.0013`, `new_mass = 0.9987 - 0.9990`.
+     - `replay60`: Order A `restricted_old_acc = 0.6234`, `old_mass = 0.5507`; Order B `restricted_old_acc = 0.8546`, `old_mass = 0.3563`.
+     - `replay120`: Order A `restricted_old_acc = 0.6942`, `old_mass = 0.6871`; Order B `restricted_old_acc = 0.8821`, `old_mass = 0.5046`.
+  3. The table generator (`src/evaluation/tables/generate_tables.py`) was permanently refactored: Joint explicitly reports `n/a`, and any run missing diagnostic metrics formats strictly as an em-dash (`—`), never defaulting to `0.0000`.
+
+### 10.2 Order D Formulation (Stage E2)
+- **Task Order D**: Control-first 2-task split:
+  - Task 1 ($T_1$): `notumor` (2) and `pituitary` (3) [2 classes, head size 2].
+  - Task 2 ($T_2$): `glioma` (0) and `meningioma` (1) [2 new classes, head size 4].
+- **Experimental Protocol**:
+  - Matches Order C: Task 1 trained ONCE per seed (`shared_task1_order_d_seed{seed}.pt`, 30 epochs, lr $10^{-3}$) and shared by all methods.
+  - Task 2 trained for 30 epochs with lr $3 \times 10^{-4}$, standard BN, last-epoch weights, no early stopping.
+  - Zero old-class validation or test data accessed during training or model selection.
+  - Methods evaluated: `finetune`, `lwf_all`, `lwf_new`, `replay60`, `replay120` across seeds `[42, 123]` (10 runs). `lwfPlus` excluded following negative screening ablation.
+
+### 10.3 Scientific Disclosures & Methodological Honesty (Stage E3)
+1. **Negative Ablation of `lwfPlus` (Variants V2–V4)**:
+   - In Stage D screening, validation Macro-F1 across variants V2–V4 clustered between 0.206 and 0.221, indistinguishable from baseline `lwf_all` (0.221).
+   - On the held-out test set, `lwfPlus` achieved no improvement over `lwf_all` in Orders A, B, or C.
+   - We explicitly record this as a negative ablation: architectural feature distillation, lower-block freezing, and loss balancing tuned on validation differences of ~0.0003 had zero test impact.
+2. **Post-Hoc Nature of `lwf_new`**:
+   - `lwf_new` was devised post-hoc after inspecting the catastrophic logit collapse in Orders A and B and observing that old-class representations remained intact in Order C under the restricted accuracy diagnostic.
+   - Crucially, `lwf_new` is mathematically and practically inapplicable to single-class tasks (Orders A and B) because cross-entropy over a single class is identically zero ($\log 1 = 0$).
+3. **Statistical Significance Bounds (2-Seed Limit)**:
+   - All experiments use $N = 2$ seeds (`[42, 123]`).
+   - We strictly adhere to the $2\sigma$ rule: no performance difference is claimed as a consistent advantage unless $|\Delta\mu| > 2\sqrt{\sigma_1^2 + \sigma_2^2}$. Differences within the noise floor are treated as comparable.
+4. **Fair Side-by-Side Comparison of `lwf_new` vs Replay**:
+   - We avoid claiming that `lwf_new` "beats" Experience Replay unless supported across all 4 metrics ($A_{\text{avg}}$, Final Acc, Final Macro-F1, Forgetting $F$).
+   - In Order C, `replay120` achieves higher Final Accuracy ($0.6993$ vs $0.6022$) and higher $A_{\text{avg}}$ ($0.7834$ vs $0.7349$), while `lwf_new` matches its forgetting resistance ($0.4681$ vs $0.4688$) with zero stored images.
+
+### 10.4 Explainability via Grad-CAM (Phase 5 P2)
+- **Target Conv Layer**: The 4th convolutional block (`model.backbone.blocks[3]`).
+- **Models Evaluated on Order C Seed 42**:
+  1. Task 1 Baseline (`shared_task1_order_c_seed42.pt`)
+  2. Naive Fine-Tuning (`checkpoint_task2.pt`)
+  3. LwF Standard / All (`checkpoint_task2.pt`)
+  4. LwF New-Class CE (`checkpoint_task2.pt`)
+  5. Experience Replay $M=120$ (`checkpoint_task2.pt`)
+  6. Joint Training Upper Bound (`best.pt`)
+- **Evaluation Set**: 16 deterministic unaugmented test images (4 per diagnostic class).
+- **Outputs**: Master comparison grid (`results/figures/gradcam/gradcam_comparison_grid.png`) and class-specific panels (`results/figures/gradcam/gradcam_class_*`).
+
+
 
 
 

@@ -37,3 +37,13 @@ orders:
       task_2:
         classes: ["pituitary", "notumor"]
         num_classes_cumulative: 4
+
+  order_d:
+    description: "Two-task split (control-first): starts with notumor and pituitary (Task 1), followed by glioma and meningioma (Task 2)."
+    tasks:
+      task_1:
+        classes: ["notumor", "pituitary"]
+        num_classes_cumulative: 2
+      task_2:
+        classes: ["glioma", "meningioma"]
+        num_classes_cumulative: 4

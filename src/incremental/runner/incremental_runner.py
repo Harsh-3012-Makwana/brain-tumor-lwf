@@ -309,14 +309,16 @@ def run_single_incremental_experiment(
             train_hook = lambda m: m.apply_frozen_blocks_eval()
             logger.info("Variant V4: Conv blocks 1 and 2 frozen with BN in eval mode for Task %d", task_idx)
 
-        # 7e. Train on Task (or load shared Task 1 for Order C)
-        is_order_c_task1 = (order == "C" and task_idx == 1)
-        shared_task1_ckpt = CHECKPOINTS_DIR / f"shared_task1_order_c_seed{seed}.pt"
+        # 7e. Train on Task (or load shared Task 1 for Order C / D)
+        is_shared_task1 = (order in ["C", "D"] and task_idx == 1)
+        shared_task1_ckpt = CHECKPOINTS_DIR / f"shared_task1_order_{order.lower()}_seed{seed}.pt"
         skipped_task1 = False
 
-        if is_order_c_task1 and shared_task1_ckpt.is_file():
-            logger.info("Order C Task 1: Loading shared checkpoint from %s", shared_task1_ckpt)
+        if is_shared_task1 and shared_task1_ckpt.is_file():
+            logger.info("Order %s Task 1: Loading shared checkpoint from %s", order, shared_task1_ckpt)
             state_dict = torch.load(shared_task1_ckpt, map_location=device, weights_only=True)
+            if isinstance(state_dict, dict) and "model_state_dict" in state_dict:
+                state_dict = state_dict["model_state_dict"]
             model.load_state_dict(state_dict)
             skipped_task1 = True
             task_time_sec = 0.0
@@ -343,10 +345,10 @@ def run_single_incremental_experiment(
             task_time_sec = time.time() - t_start
             total_training_time_sec += task_time_sec
 
-            if is_order_c_task1 and not shared_task1_ckpt.is_file():
+            if is_shared_task1 and not shared_task1_ckpt.is_file():
                 CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
                 torch.save(model.state_dict(), shared_task1_ckpt)
-                logger.info("Order C Task 1: Saved shared checkpoint to %s", shared_task1_ckpt)
+                logger.info("Order %s Task 1: Saved shared checkpoint to %s", order, shared_task1_ckpt)
 
         # Save per-task checkpoint
         task_ckpt_name = f"checkpoint_task{task_idx}.pt"
